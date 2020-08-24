@@ -1,0 +1,3 @@
+graft skin_lesion_detection
+global-exclude *.py[cod] __pycache__ *.so *.ipynb
+recursive-exclude  skin_lesion_detection/jupy *
