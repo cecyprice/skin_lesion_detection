@@ -19,7 +19,7 @@ class Trainer(object):
         del X, y
         self.split = self.kwargs.get("split", True)
         if self.split:
-            self.X_train, self.X_val, self.y_train, self.y_val = train_test_split(self.X_train, self.y_train, random_state=1, test_size=0.3)
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X_train, self.y_train, random_state=1, test_size=0.3)
 
 
     def get_estimator(self):
@@ -64,7 +64,6 @@ class Trainer(object):
         Add time tracker - if we want?
         """
         self.set_pipeline()
-        import ipdb; ipdb.set_trace()
         self.pipeline.fit(self.X_train, self.y_train)
 
 
