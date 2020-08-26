@@ -58,13 +58,23 @@ class Trainer(object):
         """
         Add time tracker - if we want?
         """
+        # categorise y
         ohe = OneHotEncoder(handle_unknown='ignore')
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1))
+
+        # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
         self.pipeline.fit_transform(self.X, self.y)
+
+        # create train vs test dataframes
         if self.split:
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, random_state=1, test_size=0.3)
-        # Convert X_train and X_test into [X_met_train, X_im_train] and [X_met_test, X_im_test]
+
+        # Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
+        self.X_met_train = self.X_train[['age', 'sex', 'dx_type', 'localization']]
+        self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['dx'].values])
+        self.X_met_test = self.X_train[['age', 'sex', 'dx_type', 'localization']]
+        self.X_im_test = np.array([i.reshape(450, 600, 3) for i in self.X_test['dx'].values])
 
 
     #@simple_time_tracker
