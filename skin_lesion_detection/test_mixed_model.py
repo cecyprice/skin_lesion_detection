@@ -1,7 +1,7 @@
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Dense, Input, Flatten, Dropout, Activation, MaxPooling2D, Conv2D, BatchNormalization
-from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import concatenate
 import numpy as np
 import locale
@@ -73,7 +73,12 @@ class Mixed_Model():
         x = Dense(4, activation="relu")(combinedInput)
         x = Dense(1, activation="linear")(x)
 
-        # return final model integrating categorical/numerical data and images into single diagnostic prediction
+        # yield final model integrating categorical/numerical data and images into single diagnostic prediction
         model = Model(inputs=[mlp.input, cnn.input], outputs=x)
 
+        # compile the model using BCE as loss
+        opt = Adam(lr=1e-3, decay=1e-3 / 200)
+        model.compile(loss="binary_cross_entropy", optimizer=opt)
 
+        # return model ready for use in pipeline
+        return model
