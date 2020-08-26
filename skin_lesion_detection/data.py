@@ -11,11 +11,53 @@ def get_data(n_rows=10000, random_state=1, **kwargs):
 
 
 def clean_df(df):
-  '''
-  Dropna, remove duplicates
-  '''
-  pass
+  ## fill missing values with mean age
+  df['age'].fillna((df['age'].mean()), inplace = True)
 
+  ## drop duplicates
+  df = df.drop_duplicates(subset=['lesion_id'], keep = 'first')
+
+  return df
+
+def balance_nv(df, under_sample_size):
+
+        ## isolate nv rows
+        data_nv = df[df['dx'] == 'nv']
+
+        # define scaling parameters
+        sample_size = under_sample_size
+        scaling = under_sample_size / data_nv.shape[0]
+
+        # stratified sampling
+        rus = RandomUnderSampler(sampling_strategy={'lower extremity' : int(1224*scaling),
+                                                    'trunk' : int(1153*scaling),
+                                                    'back' : int(1058*scaling),
+                                                    'abdomen' : int(719*scaling),
+                                                    'upper extremity' : int(504*scaling) ,
+                                                    'foot' : int(209*scaling),
+                                                    'unknown' : int(175*scaling),
+                                                    'chest' : int(112*scaling),
+                                                    'face' : int(61*scaling),
+                                                    'neck' : int(60*scaling),
+                                                    'genital' : int(43*scaling),
+                                                    'hand' : int(39*scaling),
+                                                    'scalp' : int(24*scaling),
+                                                    'ear' : int(19*scaling),
+                                                    'acral' : int(3*scaling)+1
+                                                   },
+                                   random_state=None,
+                                   replacement=False,
+                                )
+
+        ## fit strtaified sampling model
+        n_x, n_y = rus.fit_resample(data_nv, data_nv['localization'])
+
+        ## delete nv rows from original dataset
+        no_nv_data = df[df.dx != 'nv']
+
+        df = pd.concat([n_x, no_nv_data], axis=0)
+
+        return df
 
 def optimise_df(df, verbose=True, **kwargs):
   '''
