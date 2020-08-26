@@ -1,13 +1,48 @@
 import pandas as pd
 import numpy as np
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import os
+from glob import glob
+import matplotlib.pyplot as plt
+import imageio
+from PIL import Image
 
 
 def get_data(n_rows=10000, random_state=1, **kwargs):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
-  pass
+  path = '~/code/cecyprice/skin_lesion_detection/dataset/'
+  dim1_L = pd.read_csv(path + 'hmnist_8_8_L.csv')
+  dim1_RGB = pd.read_csv(path + 'hmnist_8_8_RGB.csv')
+  dim2_L = pd.read_csv(path + 'hmnist_28_28_L.csv')
+  dim2_RGB = pd.read_csv(path + 'hmnist_28_28_RGB.csv')
+
+  base_skin_dir = os.path.join('..','dataset')
+  imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
+                     for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
+
+  lesion_type_dict = {
+    'nv': 'Melanocytic nevi',
+    'mel': 'Melanoma',
+    'bkl': 'Benign keratosis-like lesions ',
+    'bcc': 'Basal cell carcinoma',
+    'akiec': 'Actinic keratoses',
+    'vasc': 'Vascular lesions',
+    'df': 'Dermatofibroma'
+  }
+
+  skin_df = pd.read_csv(os.path.join(base_skin_dir, 'HAM10000_metadata.csv'))
+
+  skin_df['path'] = skin_df['image_id'].map(imageid_path_dict.get)
+  skin_df['cell_type'] = skin_df['dx'].map(lesion_type_dict.get)
+  skin_df['cell_type_idx'] = pd.Categorical(skin_df['cell_type']).codes
+
+  skin_df['path'].dropna(inplace=True)
+
+  skin_df['images'] = skin_df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
+
+  return skin_df
 
 
 def clean_df(df):
@@ -71,3 +106,6 @@ if __name__ == '__main__':
 #   ap.add_argument("-t", "--total", type=int, default=100,
 #     help="# of training samples to generate")
 #   args = vars(ap.parse_args())
+
+
+print(get_data())
