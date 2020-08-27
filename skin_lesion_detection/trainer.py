@@ -125,14 +125,14 @@ class Trainer(object):
 
         fig, axs = plt.subplots(2)
 
-        axs[0].plot(history.history['loss'])
-        axs[0].plot(history.history['val_loss'])
+        axs[0].plot(self.history.history['loss'])
+        axs[0].plot(self.history.history['val_loss'])
         plt.title("Model Loss")
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
 
-        axs[1].plot(history.history['accuracy'])
-        axs[1].plot(history.history['val_accuracy'])
+        axs[1].plot(self.history.history['accuracy'])
+        axs[1].plot(self.history.history['val_accuracy'])
         plt.title("Model Accuracy")
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
