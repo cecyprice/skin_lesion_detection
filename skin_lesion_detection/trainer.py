@@ -4,9 +4,12 @@ from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
+
 from skin_lesion_detection.test_mixed_model import merge_compile_models
 from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
 from skin_lesion_detection.encoders import ImageScaler
+from tensorflow.keras import EarlyStopping
+
 
 import pandas as pd
 import numpy as np
@@ -26,6 +29,12 @@ class Trainer(object):
             self.input_shape = (450, 600, 3)
         elif self.image_size == 'resized':
             self.input_shape = (75, 100, 3)
+        self.history = history
+        self.train_met_results = train_met_results
+        self.train_img_results = train_img_results
+        self.test_met_results = test_met_results
+        self.test_img_results = test_img_results
+
 
 
     def get_estimator(self, input_dim=self.input_dim, input_shape=self.input_shape, filters=(16, 32, 64)):
@@ -99,29 +108,47 @@ class Trainer(object):
 
 
     #@simple_time_tracker
+
     def train(self, gridsearch=False):
         self.get_estimator()
-        self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
+        es = EarlyStopping(monitor="val_loss", mode="auto", patience=50)
+        self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
         validation_split=0.3,
-        epochs=200, batch_size=8)
+        epochs=200,
+        callbacks = [es],
+        batch_size=8,
+        verbose = 1)
 
 
     def evaluate(self):
-        """
-        evaluate performance using eg rmse
-        """
-        # Something like this...
-            # diff = self.y_preds.flatten() - self.y_test
-            # percentDiff = (diff / self.y_test) * 100
-            # absPercentDiff = np.abs(percentDiff)
-        pass
 
+      ## SEE TRAINING MODEL ACCURACY
+      self.train_met_results = model.evaluate(x=[self.X_met_train, self.X_im_train], self.y_train, verbose=0)
+      print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
 
+      ## TEST DATA ACCURACY
 
-    def compute_rmse(self, X_test, y_test, show=False):
-        """
-        compute rmse/measure to evalute model
-        """
+      self.test_met_results = model.evaluate(x=[self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
+
+      pass
+
+    def plot_loss_accuracy(history):
+
+        fig, axs = plt.subplots(2)
+
+        axs[0].plot(self.history.history['loss'])
+        axs[0].plot(self.history.history['val_loss'])
+        plt.title("Model Loss")
+        plt.xlabel("Epochs")
+        plt.legend(['Train', 'val_test'], loc='best')
+
+        axs[1].plot(self.history.history['accuracy'])
+        axs[1].plot(self.history.history['val_accuracy'])
+        plt.title("Model Accuracy")
+        plt.xlabel("Epochs")
+        plt.legend(['Train', 'val_test'], loc='best')
+
         pass
 
 
@@ -206,3 +233,12 @@ if __name__ == "__main__":
     t.evaluate()
 
 
+
+
+
+
+## Matt qs:
+        ## should we write an evaluate function? model.evalute for cnns
+        ## if we are writing evaluate function: y_test/pred = 7 column OHE matrix
+        ## either: convert back to classes/0-6 numbers OR map one matrix onto another (TRUE/FALSE) and
+        ## take number of rows containing FALSE / total number of rows
