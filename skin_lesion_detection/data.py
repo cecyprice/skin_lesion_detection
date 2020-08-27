@@ -8,7 +8,7 @@ import imageio
 from PIL import Image
 
 
-def get_data(n_rows=10000, random_state=1, **kwargs):
+def get_data(random_state=1, **kwargs):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
@@ -35,7 +35,8 @@ def get_data(n_rows=10000, random_state=1, **kwargs):
 
   df['path'].dropna(inplace=True)
 
-  df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((100,75)))).apply(lambda x : x.reshape(22500))
+  df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
+  df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((100,75)))).apply(lambda x : x.reshape(22500))
 
   return df
 
@@ -88,6 +89,7 @@ def balance_nv(df, under_sample_size):
         df = pd.concat([n_x, no_nv_data], axis=0)
 
         return df
+
 
 def optimise_df(df, verbose=True, **kwargs):
   '''

@@ -5,6 +5,12 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 
+from skin_lesion_detection.test_mixed_model import merge_compile_models
+from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
+from skin_lesion_detection.encoders import ImageScaler
+from tensorflow.keras import EarlyStopping
+
+
 import pandas as pd
 import numpy as np
 import warnings
@@ -18,16 +24,30 @@ class Trainer(object):
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
+        
+        # Image dimension attributes
         self.scaler = self.kwargs.get('scaler', 'normalization')
         self.image_size = self.kwargs.get('image_size', 'full_size')
         if self.image_size == 'full_size':
           self.target_images = 'images'
-        if self.image_size == 'resized':
+          self.input_shape = (450, 600, 3)
+        elif self.image_size == 'resized':
           self.target_images = 'images_resized'
+          self.input_shape = (75, 100, 3)
+        self.input_dim = len(X)
+       
+        # Training attributes
+        self.history = history
+        self.train_met_results = train_met_results
+        self.train_img_results = train_img_results
+        self.test_met_results = test_met_results
+        self.test_img_results = test_img_results
 
-    def get_estimator(self):
+
+    def get_estimator(self, input_dim=self.input_dim, input_shape=self.input_shape, filters=(16, 32, 64)):
         # get mixed model as self.mixed_model
-        pass
+        self.model = merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64))
+
 
     def set_pipeline(self):
 
@@ -59,7 +79,7 @@ class Trainer(object):
 
 
     #@simple_time_tracker
-    def preprocess(self, gridsearch=False):
+    def preprocess(self, gridsearch=False, image_type=full_size):
         """
         Add time tracker - if we want?
         """
@@ -75,39 +95,67 @@ class Trainer(object):
         if self.split:
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, random_state=1, test_size=0.3)
 
-        # Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
+        self.pixels_to_array(image_type=self.image_size)
+
+
+    def pixels_to_array(self, image_type="full_size")
+        """
+        Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
+        """
         self.X_met_train = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['dx'].values])
         self.X_met_test = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_im_test = np.array([i.reshape(450, 600, 3) for i in self.X_test['dx'].values])
+
+        if image_type == "full_size":
+            self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['pixels_scaled'].values])
+            self.X_im_test = np.array([i.reshape(450, 600, 3) for i in self.X_test['pixels_scaled'].values])
+        elif image_type == "resized":
+            self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['pixels_scaled'].values])
+            self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
+
 
 
     #@simple_time_tracker
-    def train_predict(self, gridsearch=False):
-        model = self.mixed_model #from mixed_model.py
-        model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
+
+    def train(self, gridsearch=False):
+        self.get_estimator()
+        es = EarlyStopping(monitor="val_loss", mode="auto", patience=50)
+        self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
         validation_split=0.3,
-        epochs=200, batch_size=8)
-        #Add Early Stopping??
-        self.y_preds = model.predict([self.X_met_test, self.X_im_test])
+        epochs=200,
+        callbacks = [es],
+        batch_size=8,
+        verbose = 1)
 
 
     def evaluate(self):
-        """
-        evaluate performance using eg rmse
-        """
-        # Something like this...
-            # diff = self.y_preds.flatten() - self.y_test
-            # percentDiff = (diff / self.y_test) * 100
-            # absPercentDiff = np.abs(percentDiff)
-        pass
 
+      ## SEE TRAINING MODEL ACCURACY
+      self.train_met_results = model.evaluate(x=[self.X_met_train, self.X_im_train], self.y_train, verbose=0)
+      print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
 
+      ## TEST DATA ACCURACY
 
-    def compute_rmse(self, X_test, y_test, show=False):
-        """
-        compute rmse/measure to evalute model
-        """
+      self.test_met_results = model.evaluate(x=[self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
+
+      pass
+
+    def plot_loss_accuracy(history):
+
+        fig, axs = plt.subplots(2)
+
+        axs[0].plot(self.history.history['loss'])
+        axs[0].plot(self.history.history['val_loss'])
+        plt.title("Model Loss")
+        plt.xlabel("Epochs")
+        plt.legend(['Train', 'val_test'], loc='best')
+
+        axs[1].plot(self.history.history['accuracy'])
+        axs[1].plot(self.history.history['val_accuracy'])
+        plt.title("Model Accuracy")
+        plt.xlabel("Epochs")
+        plt.legend(['Train', 'val_test'], loc='best')
+
         pass
 
 
@@ -165,19 +213,39 @@ class Trainer(object):
 
 
 if __name__ == "__main__":
+
     warnings.simplefilter(action='ignore', category=FutureWarning)
+
     # Get and clean data
-    # JOHN: get_data()
-    # CAM: clean_data()
-    df = pd.read_csv("../dataset/HAM10000_metadata.csv")
-    X = df.drop(columns=['dx'])
+    df = get_data()
+    df = clean_data(df)
+    df = balance_nv(df, 1000)
+    df = data_augmentation()
+
+    # Assign X and y and instanciate Trainer Class
+    X = df.drop(columns=['dx', 'lesion_id', 'image_id'])
     y = df['dx']
-    t = Trainer(X, y)
+    t = Trainer(X, y, image_size='resized')
+
+    # Preprocess data: transfrom and scale
     print("############  Preprocessing data   ############")
-    t.preprocess()
+    t.preprocess(image_type=self.image_size)
+
+    # Train model
     print("############  Training model   ############")
     t.train_predict()
+
+    # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
     t.evaluate()
-    # or score model etc
 
+
+
+
+
+
+## Matt qs:
+        ## should we write an evaluate function? model.evalute for cnns
+        ## if we are writing evaluate function: y_test/pred = 7 column OHE matrix
+        ## either: convert back to classes/0-6 numbers OR map one matrix onto another (TRUE/FALSE) and
+        ## take number of rows containing FALSE / total number of rows

@@ -32,6 +32,7 @@ class ImageScaler():
 
     return X[['pixels_scaled']]
 
+
   def fit(self, X, y=None):
     return self
 
