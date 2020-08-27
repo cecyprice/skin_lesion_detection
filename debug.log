@@ -49,3 +49,5 @@
 [0826/212820.211:ERROR:process_reader_win.cc(154)] SuspendThread: Access is denied. (0x5)
 [0826/212820.229:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5
 [0826/212821.841:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5
+[0827/113430.241:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5
+[0827/113432.362:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5

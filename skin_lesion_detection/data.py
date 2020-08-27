@@ -35,7 +35,8 @@ def get_data(n_rows=10000, random_state=1, **kwargs):
 
   df['path'].dropna(inplace=True)
 
-  df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((100,75)))).apply(lambda x : x.reshape(22500))
+  df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
+  df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((100,75)))).apply(lambda x : x.reshape(22500))
 
   return df
 

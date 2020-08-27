@@ -20,16 +20,17 @@ class ImageScaler():
   def __init__(self, scaler='normalization',**kwargs):
     self.scaler=scaler
 
-  def transform(self, df):
+  def transform(self, X, y=None):
+    assert isinstance(X, pd.DataFrame)
     if self.scaler=='normalization':
-      df['images_scaled'] = df.images.apply(lambda x: x/255)
+      X['images_scaled'] = X.images.apply(lambda x: x/255)
     if self.scaler=='standardization':
       scaler = StandardScaler()
-      skin_df['images_scaled'] = skin_df.images.apply(lambda x: (x - x.mean(axis=0))/x.std(axis=0))
+      X['images_scaled'] = X.images.apply(lambda x: (x - x.mean(axis=0))/x.std(axis=0))
     if self.scaler=='centering':
-      df['images_scaled'] = df.images.apply(lambda x: ((x - x.mean(axis=0))-(x - x.mean(axis=0)).min())/((x - x.mean(axis=0)).max()-(x - x.mean(axis=0)).min()))
+      X['images_scaled'] = X.images.apply(lambda x: ((x - x.mean(axis=0))-(x - x.mean(axis=0)).min())/((x - x.mean(axis=0)).max()-(x - x.mean(axis=0)).min()))
 
-    return df[['images_scaled']]
+    return X[['images_scaled']]
 
   def fit(self, X, y=None):
     return self
