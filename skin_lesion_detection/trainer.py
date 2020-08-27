@@ -106,7 +106,6 @@ class Trainer(object):
             self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
 
 
-
     #@simple_time_tracker
 
     def train(self, gridsearch=False):
@@ -119,19 +118,16 @@ class Trainer(object):
         batch_size=8,
         verbose = 1)
 
-
     def evaluate(self):
 
       ## SEE TRAINING MODEL ACCURACY
-      self.train_met_results = model.evaluate(x=[self.X_met_train, self.X_im_train], self.y_train, verbose=0)
+      self.train_met_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], self.y_train, verbose=0)
       print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
 
       ## TEST DATA ACCURACY
 
-      self.test_met_results = model.evaluate(x=[self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      self.test_met_results = self.model.evaluate(x=[self.X_met_test, self.X_im_test], self.y_test, verbose=0)
       print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
-
-      pass
 
     def plot_loss_accuracy(history):
 
@@ -149,8 +145,6 @@ class Trainer(object):
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
 
-        pass
-
 
     def save_model(self):
         """
@@ -158,6 +152,7 @@ class Trainer(object):
         """
         joblib.dump(self.pipeline, 'model.joblib')
         print(colored("model.joblib saved locally", "green"))
+        pass
 
 
     # ### MLFlow methods
