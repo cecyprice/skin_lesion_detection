@@ -1,15 +1,15 @@
+import tensorflow.keras
 from tensorflow.keras.models import Model, Sequential
-from tensorflow.keras.layers import Dense, Input, Flatten, Dropout, Activation, MaxPooling2D, Conv2D, BatchNormalization
+from tensorflow.keras.layers import Dense, Input, Flatten, concatenate, Dropout, Activation, MaxPooling2D, Conv2D, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.layers import concatenate
+
 import numpy as np
-import locale
 import os
 
 
 
-class Mixed_Model():
+class MixedModel():
 
     def create_mlp(self, input_dim):
         """
@@ -57,13 +57,13 @@ class Mixed_Model():
         return model
 
 
-    def merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64))
+    def merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64)):
         """
         Join forks of network to combine models for all data types
         """
         # create the MLP and CNN models
-        mlp = models.create_mlp(input_dim)
-        cnn = models.create_cnn(input_shape)
+        mlp = self.create_mlp(input_dim)
+        cnn = self.create_cnn(input_shape)
 
         # create the input to our final set of layers as the output of both the MLP and CNN
         combinedInput = concatenate([mlp.output, cnn.output])
@@ -77,8 +77,10 @@ class Mixed_Model():
 
         # compile the model using BCE as loss
         opt = Adam(lr=1e-3, decay=1e-3 / 200)
-        model.compile(loss="binary_cross_entropy",
+        model.compile(loss="binary_crossentropy",
           optimizer=opt,
-          metrics=['accuracy', 'recall', 'precision', 'f1'])
+          metrics=['accuracy'])
+
+        #NB have removed  'precision', 'f1'
 
         return model
