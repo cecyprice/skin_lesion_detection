@@ -4,6 +4,7 @@ from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
+from tensorflow.keras import EarlyStopping
 
 import pandas as pd
 import numpy as np
@@ -18,6 +19,11 @@ class Trainer(object):
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
+        self.history = history
+        self.train_met_results = train_met_results
+        self.train_img_results = train_img_results
+        self.test_met_results = test_met_results
+        self.test_img_results = test_img_results
 
 
     def get_estimator(self):
@@ -79,31 +85,70 @@ class Trainer(object):
 
     #@simple_time_tracker
     def train_predict(self, gridsearch=False):
+
+        es = EarlyStopping(monitor="val_loss", mode="auto", patience=50)
+
         model = self.mixed_model #from mixed_model.py
-        model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
+
+        self.history = model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
         validation_split=0.3,
-        epochs=200, batch_size=8)
-        #Add Early Stopping??
+        epochs=200,
+        callbacks = [es],
+        batch_size=8,
+        verbose = 1)
+
         self.y_preds = model.predict([self.X_met_test, self.X_im_test])
 
 
+## 'accuracy', 'recall', 'precision', 'f1'
+
     def evaluate(self):
-        """
-        evaluate performance using eg rmse
-        """
-        # Something like this...
-            # diff = self.y_preds.flatten() - self.y_test
-            # percentDiff = (diff / self.y_test) * 100
-            # absPercentDiff = np.abs(percentDiff)
+
+      ## SEE TRAINING MODEL ACCURACY
+      self.train_met_results = model.evaluate(self.X_met_train, self.y_train, verbose=0)
+      print('Train Meta loss: {} - Train Meta Accuracy: {} - Train Meta Recall: {} - Train Meta Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
+
+      self.train_img_results = model.evaluate(self.X_im_train, self.y_train, verbose=0)
+      print('Train Image loss: {} - Train Image Accuracy: {} - Train Image Recall: {} - Train Image Precision: {}'.format(train_img_results[0], train_img_results[1], train_img_results[2], train_img_results[3]))
+
+      ## TEST DATA ACCURACY
+
+      self.test_met_results = model.evaluate(self.X_met_test, self.y_test, verbose=0)
+      print('Test Meta loss: {} - Test Meta Accuracy: {} - Test Meta Recall: {} - Test Meta Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
+
+      self.test_img_results = model.evaluate(self.X_im_train, self.y_test, verbose=0)
+      print('Test Image loss: {} - Test Image Accuracy: {} - Test Image Recall: {} - Test Image Precision: {}'.format(test_img_results[0], test_img_results[1], test_img_results[2], test_img_results[3]))
+
+      pass
+
+    def plot_loss_accuracy(history):
+
+        fig, axs = plt.subplots(2)
+
+        axs[0].plot(history.history['loss'])
+        axs[0].plot(history.history['val_loss'])
+        plt.title("Model Loss")
+        plt.xlabel("Epochs")
+        plt.legend(['Train', 'val_test'], loc='best')
+
+        axs[1].plot(history.history['accuracy'])
+        axs[1].plot(history.history['val_accuracy'])
+        plt.title("Model Accuracy")
+        plt.xlabel("Epochs")
+        plt.legend(['Train', 'val_test'], loc='best')
+
         pass
 
 
+    # def compute_rmse(self, X_test, y_test, show=False):
 
-    def compute_rmse(self, X_test, y_test, show=False):
-        """
-        compute rmse/measure to evalute model
-        """
-        pass
+    #     ## model is outputting a prediction of cancer class
+    #     ## prediction is either right or wrong
+
+    #     """
+    #     compute rmse/measure to evalute model
+    #     """
+    #     pass
 
 
     def save_model(self):
@@ -176,3 +221,12 @@ if __name__ == "__main__":
     t.evaluate()
     # or score model etc
 
+
+
+
+
+## Matt qs:
+        ## should we write an evaluate function? model.evalute for cnns
+        ## if we are writing evaluate function: y_test/pred = 7 column OHE matrix
+        ## either: convert back to classes/0-6 numbers OR map one matrix onto another (TRUE/FALSE) and
+        ## take number of rows containing FALSE / total number of rows

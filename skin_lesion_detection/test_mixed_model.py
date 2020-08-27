@@ -78,7 +78,8 @@ class Mixed_Model():
 
         # compile the model using BCE as loss
         opt = Adam(lr=1e-3, decay=1e-3 / 200)
-        model.compile(loss="binary_cross_entropy", optimizer=opt)
+        model.compile(loss="binary_cross_entropy",
+          optimizer=opt,
+          metrics=['accuracy', 'recall', 'precision', 'f1'])
 
-        # return model ready for use in pipeline
         return model
