@@ -25,7 +25,7 @@ class ImageScaler():
       df['images_scaled'] = df.images.apply(lambda x: x/255)
     if self.scaler=='standardization':
       scaler = StandardScaler()
-      skin_df['images_scaled'] = skin_df.images.apply(lambda x: (x - x.mean(axis=0))/x.std(axis=0))
+      df['images_scaled'] = df.images.apply(lambda x: (x - x.mean(axis=0))/x.std(axis=0))
     if self.scaler=='centering':
       df['images_scaled'] = df.images.apply(lambda x: ((x - x.mean(axis=0))-(x - x.mean(axis=0)).min())/((x - x.mean(axis=0)).max()-(x - x.mean(axis=0)).min()))
 
