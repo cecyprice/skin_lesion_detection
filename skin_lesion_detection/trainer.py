@@ -105,19 +105,13 @@ class Trainer(object):
     def evaluate(self):
 
       ## SEE TRAINING MODEL ACCURACY
-      self.train_met_results = model.evaluate(self.X_met_train, self.y_train, verbose=0)
-      print('Train Meta loss: {} - Train Meta Accuracy: {} - Train Meta Recall: {} - Train Meta Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
-
-      self.train_img_results = model.evaluate(self.X_im_train, self.y_train, verbose=0)
-      print('Train Image loss: {} - Train Image Accuracy: {} - Train Image Recall: {} - Train Image Precision: {}'.format(train_img_results[0], train_img_results[1], train_img_results[2], train_img_results[3]))
+      self.train_met_results = model.evaluate(x=[self.X_met_train, self.X_im_train], self.y_train, verbose=0)
+      print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
 
       ## TEST DATA ACCURACY
 
-      self.test_met_results = model.evaluate(self.X_met_test, self.y_test, verbose=0)
-      print('Test Meta loss: {} - Test Meta Accuracy: {} - Test Meta Recall: {} - Test Meta Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
-
-      self.test_img_results = model.evaluate(self.X_im_train, self.y_test, verbose=0)
-      print('Test Image loss: {} - Test Image Accuracy: {} - Test Image Recall: {} - Test Image Precision: {}'.format(test_img_results[0], test_img_results[1], test_img_results[2], test_img_results[3]))
+      self.test_met_results = model.evaluate(x=[self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
 
       pass
 
