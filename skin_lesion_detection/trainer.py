@@ -24,17 +24,24 @@ class Trainer(object):
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
-        self.input_dim = len(X)
+        
+        # Image dimension attributes
+        self.scaler = self.kwargs.get('scaler', 'normalization')
+        self.image_size = self.kwargs.get('image_size', 'full_size')
         if self.image_size == 'full_size':
-            self.input_shape = (450, 600, 3)
+          self.target_images = 'images'
+          self.input_shape = (450, 600, 3)
         elif self.image_size == 'resized':
-            self.input_shape = (75, 100, 3)
+          self.target_images = 'images_resized'
+          self.input_shape = (75, 100, 3)
+        self.input_dim = len(X)
+       
+        # Training attributes
         self.history = history
         self.train_met_results = train_met_results
         self.train_img_results = train_img_results
         self.test_met_results = test_met_results
         self.test_img_results = test_img_results
-
 
 
     def get_estimator(self, input_dim=self.input_dim, input_shape=self.input_shape, filters=(16, 32, 64)):
@@ -47,14 +54,14 @@ class Trainer(object):
         # Define feature engineering pipeline blocks
         pipe_cat_feats = make_pipeline(OneHotEncoder(handle_unknown='ignore'))
         pipe_cont_feats = make_pipeline(RobustScaler())
-        # pipe_photo_feats = make_pipeline(CUSTOMSCALERFORPIXELDATA())
+        pipe_photo_feats = make_pipeline(ImageScaler(scaler=self.scaler, image_size=self.image_size))
 
 
         # Define default feature engineering blocs
         feateng_blocks = [
             ('cat_feats', pipe_cat_feats, ['localization', 'dx_type', 'sex']),
             ('cont_features', pipe_cont_feats, ['age'])
-            # ('photo_feats', pipe_photo_feats, LISTOFPIXELCOLUMNS),
+            ('photo_feats', pipe_photo_feats, [self.target_images]),
         ]
 
         features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")
