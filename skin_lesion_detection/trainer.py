@@ -18,7 +18,12 @@ class Trainer(object):
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
-
+        self.scaler = self.kwargs.get('scaler', 'normalization')
+        self.image_size = self.kwargs.get('image_size', 'full_size')
+        if self.image_size == 'full_size':
+          self.target_images = 'images'
+        if self.image_size == 'resized':
+          self.target_images = 'images_resized'
 
     def get_estimator(self):
         # get mixed model as self.mixed_model
@@ -29,14 +34,14 @@ class Trainer(object):
         # Define feature engineering pipeline blocks
         pipe_cat_feats = make_pipeline(OneHotEncoder(handle_unknown='ignore'))
         pipe_cont_feats = make_pipeline(RobustScaler())
-        # pipe_photo_feats = make_pipeline(CUSTOMSCALERFORPIXELDATA())
+        pipe_photo_feats = make_pipeline(ImageScaler(scaler=self.scaler, image_size=self.image_size))
 
 
         # Define default feature engineering blocs
         feateng_blocks = [
             ('cat_feats', pipe_cat_feats, ['localization', 'dx_type', 'sex']),
             ('cont_features', pipe_cont_feats, ['age'])
-            # ('photo_feats', pipe_photo_feats, LISTOFPIXELCOLUMNS),
+            ('photo_feats', pipe_photo_feats, [self.target_images]),
         ]
 
         features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")

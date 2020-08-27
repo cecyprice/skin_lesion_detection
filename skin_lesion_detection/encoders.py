@@ -17,19 +17,20 @@ class LabelEncoder():
 
 
 class ImageScaler():
-  def __init__(self, scaler='normalization',**kwargs):
+  def __init__(self, scaler='normalization',image_size='full_size'):
     self.scaler=scaler
+    self.image_size=image_size
 
-  def transform(self, df):
+  def transform(self, X, y=None):
     if self.scaler=='normalization':
-      df['images_scaled'] = df.images.apply(lambda x: x/255)
+      X['pixels_scaled'] = X.image_size.apply(lambda x: x/255)
     if self.scaler=='standardization':
       scaler = StandardScaler()
-      skin_df['images_scaled'] = skin_df.images.apply(lambda x: (x - x.mean(axis=0))/x.std(axis=0))
+      X['pixels_scaled'] = X.image_size.apply(lambda x: (x - x.mean(axis=0))/x.std(axis=0))
     if self.scaler=='centering':
-      df['images_scaled'] = df.images.apply(lambda x: ((x - x.mean(axis=0))-(x - x.mean(axis=0)).min())/((x - x.mean(axis=0)).max()-(x - x.mean(axis=0)).min()))
+      X['pixels_scaled'] = X.image_size.apply(lambda x: ((x - x.mean(axis=0))-(x - x.mean(axis=0)).min())/((x - x.mean(axis=0)).max()-(x - x.mean(axis=0)).min()))
 
-    return df[['images_scaled']]
+    return X[['pixels_scaled']]
 
   def fit(self, X, y=None):
     return self
