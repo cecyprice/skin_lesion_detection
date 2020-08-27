@@ -72,9 +72,9 @@ class Trainer(object):
 
         # Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
         self.X_met_train = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['dx'].values])
+        self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['images_resized'].values])
         self.X_met_test = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_im_test = np.array([i.reshape(450, 600, 3) for i in self.X_test['dx'].values])
+        self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['images_resized'].values])
 
 
     #@simple_time_tracker
