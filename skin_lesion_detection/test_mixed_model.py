@@ -20,16 +20,15 @@ class Mixed_Model():
         model.add(Dense(4, activation="relu"))
         return model
 
-    def create_cnn(self, width, height, depth, filters=(16, 32, 64)):
+    def create_cnn(self, input_shape, filters=(16, 32, 64)):
         """
         Create Convolutional Neural Network as right-hand fork of mixed neural network for pixel data
         """
         # initialize the input shape and channel dimension, assuming TensorFlow/channels-last ordering
-        input_shape = (height, width, depth)
         chanDim = -1
 
         # define the model input
-        inputs = Input(shape=inputShape)
+        inputs = Input(shape=input_shape)
 
         # loop over the number of filters
         for (i, f) in enumerate(filters):
@@ -58,20 +57,20 @@ class Mixed_Model():
         return model
 
 
-    def merge_compile_models(self, input_dim, width, height, depth, filters=(16, 32, 64))
+    def merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64))
         """
         Join forks of network to combine models for all data types
         """
         # create the MLP and CNN models
         mlp = models.create_mlp(input_dim)
-        cnn = models.create_cnn(width, height, depth, filters=(16, 32, 64))
+        cnn = models.create_cnn(input_shape)
 
         # create the input to our final set of layers as the output of both the MLP and CNN
         combinedInput = concatenate([mlp.output, cnn.output])
 
         # add final FC layer head with 2 dense layers with final layer as the multi-classifier head
         x = Dense(4, activation="relu")(combinedInput)
-        x = Dense(1, activation="linear")(x)
+        x = Dense(7, activation="softmax")(x)
 
         # yield final model integrating categorical/numerical data and images into single diagnostic prediction
         model = Model(inputs=[mlp.input, cnn.input], outputs=x)

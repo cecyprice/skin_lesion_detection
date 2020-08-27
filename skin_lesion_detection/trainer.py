@@ -4,7 +4,12 @@ from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
+
+from skin_lesion_detection.test_mixed_model import merge_compile_models
+from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
+from skin_lesion_detection.encoders import ImageScaler
 from tensorflow.keras import EarlyStopping
+
 
 import pandas as pd
 import numpy as np
@@ -19,6 +24,11 @@ class Trainer(object):
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
+        self.input_dim = len(X)
+        if self.image_size == 'full_size':
+            self.input_shape = (450, 600, 3)
+        elif self.image_size == 'resized':
+            self.input_shape = (75, 100, 3)
         self.history = history
         self.train_met_results = train_met_results
         self.train_img_results = train_img_results
@@ -26,9 +36,11 @@ class Trainer(object):
         self.test_img_results = test_img_results
 
 
-    def get_estimator(self):
+
+    def get_estimator(self, input_dim=self.input_dim, input_shape=self.input_shape, filters=(16, 32, 64)):
         # get mixed model as self.mixed_model
-        pass
+        self.model = merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64))
+
 
     def set_pipeline(self):
 
@@ -60,7 +72,7 @@ class Trainer(object):
 
 
     #@simple_time_tracker
-    def preprocess(self, gridsearch=False):
+    def preprocess(self, gridsearch=False, image_type=full_size):
         """
         Add time tracker - if we want?
         """
@@ -76,31 +88,37 @@ class Trainer(object):
         if self.split:
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, random_state=1, test_size=0.3)
 
-        # Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
+        self.pixels_to_array(image_type=self.image_size)
+
+
+    def pixels_to_array(self, image_type="full_size")
+        """
+        Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
+        """
         self.X_met_train = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['images_resized'].values])
         self.X_met_test = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['images_resized'].values])
+
+        if image_type == "full_size":
+            self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['pixels_scaled'].values])
+            self.X_im_test = np.array([i.reshape(450, 600, 3) for i in self.X_test['pixels_scaled'].values])
+        elif image_type == "resized":
+            self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['pixels_scaled'].values])
+            self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
+
 
 
     #@simple_time_tracker
-    def train_predict(self, gridsearch=False):
 
+    def train(self, gridsearch=False):
+        self.get_estimator()
         es = EarlyStopping(monitor="val_loss", mode="auto", patience=50)
-
-        model = self.mixed_model #from mixed_model.py
-
-        self.history = model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
+        self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
         validation_split=0.3,
         epochs=200,
         callbacks = [es],
         batch_size=8,
         verbose = 1)
 
-        self.y_preds = model.predict([self.X_met_test, self.X_im_test])
-
-
-## 'accuracy', 'recall', 'precision', 'f1'
 
     def evaluate(self):
 
@@ -132,17 +150,6 @@ class Trainer(object):
         plt.legend(['Train', 'val_test'], loc='best')
 
         pass
-
-
-    # def compute_rmse(self, X_test, y_test, show=False):
-
-    #     ## model is outputting a prediction of cancer class
-    #     ## prediction is either right or wrong
-
-    #     """
-    #     compute rmse/measure to evalute model
-    #     """
-    #     pass
 
 
     def save_model(self):
@@ -199,21 +206,32 @@ class Trainer(object):
 
 
 if __name__ == "__main__":
+
     warnings.simplefilter(action='ignore', category=FutureWarning)
+
     # Get and clean data
-    # JOHN: get_data()
-    # CAM: clean_data()
-    df = pd.read_csv("../dataset/HAM10000_metadata.csv")
-    X = df.drop(columns=['dx'])
+    df = get_data()
+    df = clean_data(df)
+    df = balance_nv(df, 1000)
+    df = data_augmentation()
+
+    # Assign X and y and instanciate Trainer Class
+    X = df.drop(columns=['dx', 'lesion_id', 'image_id'])
     y = df['dx']
-    t = Trainer(X, y)
+    t = Trainer(X, y, image_size='resized')
+
+    # Preprocess data: transfrom and scale
     print("############  Preprocessing data   ############")
-    t.preprocess()
+    t.preprocess(image_type=self.image_size)
+
+    # Train model
     print("############  Training model   ############")
     t.train_predict()
+
+    # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
     t.evaluate()
-    # or score model etc
+
 
 
 

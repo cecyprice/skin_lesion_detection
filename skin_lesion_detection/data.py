@@ -8,7 +8,7 @@ import imageio
 from PIL import Image
 
 
-def get_data(n_rows=10000, random_state=1, **kwargs):
+def get_data(random_state=1, **kwargs):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
@@ -89,6 +89,7 @@ def balance_nv(df, under_sample_size):
         df = pd.concat([n_x, no_nv_data], axis=0)
 
         return df
+
 
 def optimise_df(df, verbose=True, **kwargs):
   '''
