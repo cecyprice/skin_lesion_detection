@@ -1,13 +1,44 @@
 import pandas as pd
 import numpy as np
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import os
+from glob import glob
+import matplotlib.pyplot as plt
+import imageio
+from PIL import Image
 
 
-def get_data(n_rows=10000, random_state=1, **kwargs):
+def get_data(random_state=1, **kwargs):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
-  pass
+
+  base_skin_dir = os.path.join('..','dataset')
+  imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
+                     for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
+
+  lesion_type_dict = {
+    'nv': 'Melanocytic nevi',
+    'mel': 'Melanoma',
+    'bkl': 'Benign keratosis-like lesions ',
+    'bcc': 'Basal cell carcinoma',
+    'akiec': 'Actinic keratoses',
+    'vasc': 'Vascular lesions',
+    'df': 'Dermatofibroma'
+  }
+
+  df = pd.read_csv(os.path.join(base_skin_dir, 'HAM10000_metadata.csv'))
+
+  df['path'] = df['image_id'].map(imageid_path_dict.get)
+  df['cell_type'] = df['dx'].map(lesion_type_dict.get)
+  df['cell_type_idx'] = pd.Categorical(df['cell_type']).codes
+
+  df['path'].dropna(inplace=True)
+
+  df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
+  df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((100,75)))).apply(lambda x : x.reshape(22500))
+
+  return df
 
 
 def clean_df(df):
@@ -58,6 +89,7 @@ def balance_nv(df, under_sample_size):
         df = pd.concat([n_x, no_nv_data], axis=0)
 
         return df
+
 
 def optimise_df(df, verbose=True, **kwargs):
   '''
@@ -113,3 +145,4 @@ if __name__ == '__main__':
 #   ap.add_argument("-t", "--total", type=int, default=100,
 #     help="# of training samples to generate")
 #   args = vars(ap.parse_args())
+
