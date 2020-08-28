@@ -39,10 +39,8 @@ class Trainer(object):
 
         # Training attributes
         self.history = None
-        self.train_met_results = None
-        self.train_img_results = None
-        self.test_met_results = None
-        self.test_img_results = None
+        self.train_results = None
+        self.test_results = None
 
 
     def get_estimator(self):
@@ -144,12 +142,14 @@ class Trainer(object):
     def evaluate(self):
 
       ## SEE TRAINING MODEL ACCURACY
-      self.train_met_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
-      print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
+      self.train_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
+      print('Train Loss: {} - Train Accuracy: {}'.format(self.train_met_results[0], self.train_met_results[1]))
+      # print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(self.train_met_results[0], self.train_met_results[1], self.train_met_results[2], self.train_met_results[3]))
 
       ## TEST DATA ACCURACY
-      self.test_met_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
-      print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
+      self.test_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      print('Train Loss: {} - Train Accuracy: {}'.format(self.test_met_results[0], self.test_met_results[1]))
+      # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(self.test_met_results[0], self.test_met_results[1], self.test_met_results[2], self.test_met_results[3]))
 
     def plot_loss_accuracy(history):
 
@@ -227,13 +227,17 @@ if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     # Get and clean data
-    df = get_data(nrows=20)
-    print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
+    df = get_data()
+    print("-----------STATUS UPDATE: DATA IMPORTED-----------")
+
     df = clean_df(df)
-    print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    # df = balance_nv(df, 1000)
-    # df = data_augmentation(df, image_size='resized')
-    # print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
+    print("-----------STATUS UPDATE: DATA CLEANED-----------")
+
+    df = balance_nv(df, 1000)
+    print("-----------STATUS UPDATE: DATA BALANCED-----------")
+
+    df = data_augmentation(df, image_size='resized')
+    print("-----------STATUS UPDATE: DATA AUGMENTED-----------")
 
     # Assign X and y and instanciate Trainer Class
     X = df.drop(columns=['dx', 'lesion_id', 'image_id'])
