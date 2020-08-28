@@ -36,7 +36,6 @@ class Trainer(object):
         elif self.image_size == 'resized':
           self.target_images = 'images_resized'
           self.input_shape = (75, 100, 3)
-        self.input_dim = len(X)
 
 
 
@@ -95,6 +94,12 @@ class Trainer(object):
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
 
+        # convert x categorical features to strings
+        self.X['localization'] = self.X['localization'].to_string()
+        self.X['dx_type'] = self.X['dx_type'].to_string()
+        self.X['sex'] = self.X['sex'].to_string()
+        self.X['age'] = self.X['age'].astype('float64')
+
         # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
         self.X = self.pipeline.fit_transform(self.X)
@@ -138,6 +143,7 @@ class Trainer(object):
     #@simple_time_tracker
     def train(self, gridsearch=False, estimator='baseline_model'):
         # assign self.estimator as desired estimator and set self.model via get_estimator()
+        self.input_dim=self.X_met_train.shape[1]
         self.estimator=estimator
         self.get_estimator()
 
@@ -239,16 +245,17 @@ if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     # Get and clean data
-    df = get_data(nrows=20)
+    df = get_data(nrows=None)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    # df = balance_nv(df, 1000)
-    # df = data_augmentation(df, image_size='resized')
-    # print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
+    df = balance_nv(df, 1000)
+    "-----------STATUS UPDATE: DATA BALANCED-----------"
+    df = data_augmentation(df, image_size='resized')
+    print("-----------STATUS UPDATE: DATA AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
-    X = df.drop(columns=['dx', 'lesion_id', 'image_id'])
+    X = df.drop(columns=['dx', 'lesion_id', 'image_id', 'cell_type', 'cell_type_idx'])
     y = df['dx']
     t = Trainer(X, y, image_size='resized')
 
