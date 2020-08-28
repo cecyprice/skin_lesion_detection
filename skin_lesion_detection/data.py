@@ -4,15 +4,16 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import os
 from glob import glob
 import matplotlib.pyplot as plt
+import sklearn.neighbors
+from imblearn.under_sampling import RandomUnderSampler
 import imageio
 from PIL import Image
 
 
-def get_data(random_state=1, **kwargs):
+def get_data(random_state=1, nrows=None):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
-
   base_skin_dir = os.path.join('..','dataset')
   imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
                      for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
@@ -27,7 +28,7 @@ def get_data(random_state=1, **kwargs):
     'df': 'Dermatofibroma'
   }
 
-  df = pd.read_csv(os.path.join(base_skin_dir, 'HAM10000_metadata.csv'))
+  df = pd.read_csv(os.path.join(base_skin_dir, 'HAM10000_metadata.csv'), nrows=nrows)
 
   df['path'] = df['image_id'].map(imageid_path_dict.get)
   df['cell_type'] = df['dx'].map(lesion_type_dict.get)
@@ -47,6 +48,11 @@ def clean_df(df):
 
   ## drop duplicates
   df = df.drop_duplicates(subset=['lesion_id'], keep = 'first')
+
+  # convert categorical columns to numeric values
+  df.localization = df.localization.astype('category')
+  df.dx_type = df.dx_type.astype('category')
+  df.sex = df.sex.astype('category')
 
   return df
 
@@ -110,28 +116,41 @@ def data_augmentation(df):
     horizontal_flip=True,
     fill_mode="nearest")
 
-    #construct the actual Python generator
-    dataGen = aug.flow(df,
-                       batch_size = df.shape[0])
+    ## Create np.array of augmented images from original images dataframe. Reshape to feed into dataGen
+    images_array = np.array([i.reshape(75,100,3) for i in df['images_resized'].values])
 
-    ## OPTIONAL BIT: IF YOU WANT TO SAVE NEW IMAGES INTO ORIGINAL FOLDER## 
-
-    '''uncomment start
-    # output = 'YOUR_FILEPATH_HERE'
-    # dataGen = aug.flow(df,
-    #                    batch_size = df.shape[0],
-    #                    save_to_dir = output)
-    uncomment finish '''
-
-    # iterate over imagegenerator object, add to test_images dataset
+    #construct the actual Python generator, iterate over imagegenerator object
+    dataGen = aug.flow(images_array, batch_size = len(df))
     for i in dataGen:
         break
 
-    ## Entire dataset doubled
+    ## flatten i before concatenating it into new dataframe copy
+    i = i.reshape(len(df), 22500)
 
-    df = np.concatenate((df, i), axis = 0)
+    ## turn i from array into list so it can be converted into pd
+    im_list = []
+    for im in i:
+        im_list.append(im)
+
+    # convert i into the pandas i_df
+    i_df = pd.DataFrame({'images_resized': im_list})
+
+    # create new dataframe without image column and convert in np.array
+    new_df = df.loc[:, df.columns != 'images_resized']
+
+    ## concatenate new_df numpy array and new augmented image array
+    new_df = pd.concat((new_df, i_df), axis = 1)
+
+    ## convert new_df back into pandas
+    new_df = pd.DataFrame(new_df)
+
+    ## vertically concatenate new dataframes
+    frames = [df, new_df]
+    df = pd.concat(frames)
+    df.reset_index(drop=True, inplace=True)
 
     return df
+
 
 if __name__ == '__main__':
   print('cleaned dataframe')

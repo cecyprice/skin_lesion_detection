@@ -5,11 +5,12 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 
-from skin_lesion_detection.test_mixed_model import merge_compile_models
-from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
-from skin_lesion_detection.encoders import ImageScaler
-from tensorflow.keras import EarlyStopping
+import tensorflow.keras
+from tensorflow.keras.callbacks import EarlyStopping
 
+from test_mixed_model import MixedModel
+from data import get_data, clean_df, balance_nv, data_augmentation
+from encoders import ImageScaler
 
 import pandas as pd
 import numpy as np
@@ -24,7 +25,7 @@ class Trainer(object):
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
-        
+
         # Image dimension attributes
         self.scaler = self.kwargs.get('scaler', 'normalization')
         self.image_size = self.kwargs.get('image_size', 'full_size')
@@ -35,39 +36,42 @@ class Trainer(object):
           self.target_images = 'images_resized'
           self.input_shape = (75, 100, 3)
         self.input_dim = len(X)
-       
+
         # Training attributes
-        self.history = history
-        self.train_met_results = train_met_results
-        self.train_img_results = train_img_results
-        self.test_met_results = test_met_results
-        self.test_img_results = test_img_results
+        self.history = None
+        self.train_met_results = None
+        self.train_img_results = None
+        self.test_met_results = None
+        self.test_img_results = None
 
 
-    def get_estimator(self, input_dim=self.input_dim, input_shape=self.input_shape, filters=(16, 32, 64)):
+    def get_estimator(self):
         # get mixed model as self.mixed_model
-        self.model = merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64))
+        self.model = MixedModel().merge_compile_models(input_dim=self.input_dim, input_shape=self.input_shape)
 
 
     def set_pipeline(self):
 
         # Define feature engineering pipeline blocks
-        pipe_cat_feats = make_pipeline(OneHotEncoder(handle_unknown='ignore'))
-        pipe_cont_feats = make_pipeline(RobustScaler())
-        pipe_photo_feats = make_pipeline(ImageScaler(scaler=self.scaler, image_size=self.image_size))
+        self.ohe = OneHotEncoder(handle_unknown='ignore')
+        self.rs = RobustScaler()
+        self.imsc = ImageScaler(scaler=self.scaler, image_size=self.image_size)
 
+        pipe_cat_feats = make_pipeline(self.ohe)
+        pipe_cont_feats = make_pipeline(self.rs)
+        pipe_photo_feats = make_pipeline(self.imsc)
 
         # Define default feature engineering blocs
         feateng_blocks = [
             ('cat_feats', pipe_cat_feats, ['localization', 'dx_type', 'sex']),
-            ('cont_features', pipe_cont_feats, ['age'])
+            ('cont_features', pipe_cont_feats, ['age']),
             ('photo_feats', pipe_photo_feats, [self.target_images]),
         ]
 
-        features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")
+        self.features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")
 
         self.pipeline = Pipeline(steps=[
-            ('features', features_encoder)
+            ('features', self.features_encoder)
             ])
 
 
@@ -79,31 +83,44 @@ class Trainer(object):
 
 
     #@simple_time_tracker
-    def preprocess(self, gridsearch=False, image_type=full_size):
+    def preprocess(self, gridsearch=False, image_type="full_size"):
         """
         Add time tracker - if we want?
         """
         # categorise y
         ohe = OneHotEncoder(handle_unknown='ignore')
-        self.y = ohe.fit_transform(self.y.values.reshape(-1, 1))
+        self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
+        print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
 
         # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
-        self.pipeline.fit_transform(self.X, self.y)
+        self.X = self.pipeline.fit_transform(self.X)
+
+        # convert self.X to pd.df
+        self.col_list = []
+        list_arrays = self.features_encoder.transformers_[0][1].named_steps['onehotencoder'].categories_
+        for i in list_arrays:
+            for col_name in i:
+                self.col_list.append(col_name)
+        self.col_list.append('age_scaled')
+        self.col_list.append('pixels_scaled')
+
+        self.X = pd.DataFrame(self.X, columns=self.col_list)
+        print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
 
         # create train vs test dataframes
         if self.split:
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, random_state=1, test_size=0.3)
 
         self.pixels_to_array(image_type=self.image_size)
+        print("-----------STATUS UPDATE: DATA SPLIT INTO X/Y TEST/TRAIN MET/IM'-----------")
 
-
-    def pixels_to_array(self, image_type="full_size")
+    def pixels_to_array(self, image_type="full_size"):
         """
         Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
         """
-        self.X_met_train = self.X_train[['age', 'sex', 'dx_type', 'localization']]
-        self.X_met_test = self.X_train[['age', 'sex', 'dx_type', 'localization']]
+        self.X_met_train = self.X_train.drop(columns=['pixels_scaled']).astype('float64')
+        self.X_met_test = self.X_test.drop(columns=['pixels_scaled']).astype('float64')
 
         if image_type == "full_size":
             self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['pixels_scaled'].values])
@@ -111,10 +128,9 @@ class Trainer(object):
         elif image_type == "resized":
             self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['pixels_scaled'].values])
             self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
-
+        print("-----------STATUS UPDATE: PIXEL ARRAGYS EXTRACTED'-----------")
 
     #@simple_time_tracker
-
     def train(self, gridsearch=False):
         self.get_estimator()
         es = EarlyStopping(monitor="val_loss", mode="auto", patience=50)
@@ -128,26 +144,25 @@ class Trainer(object):
     def evaluate(self):
 
       ## SEE TRAINING MODEL ACCURACY
-      self.train_met_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], self.y_train, verbose=0)
+      self.train_met_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
       print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
 
       ## TEST DATA ACCURACY
-
-      self.test_met_results = self.model.evaluate(x=[self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      self.test_met_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
       print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
 
     def plot_loss_accuracy(history):
 
         fig, axs = plt.subplots(2)
 
-        axs[0].plot(self.history.history['loss'])
-        axs[0].plot(self.history.history['val_loss'])
+        axs[0].plot(history.history['loss'])
+        axs[0].plot(history.history['val_loss'])
         plt.title("Model Loss")
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
 
-        axs[1].plot(self.history.history['accuracy'])
-        axs[1].plot(self.history.history['val_accuracy'])
+        axs[1].plot(history.history['accuracy'])
+        axs[1].plot(history.history['val_accuracy'])
         plt.title("Model Accuracy")
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
@@ -212,10 +227,13 @@ if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     # Get and clean data
-    df = get_data()
-    df = clean_data(df)
-    df = balance_nv(df, 1000)
-    df = data_augmentation()
+    df = get_data(nrows=20)
+    print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
+    df = clean_df(df)
+    print("-----------STATUS UPDATE: DATA CLEANED'-----------")
+    # df = balance_nv(df, 1000)
+    # df = data_augmentation(df, image_size='resized')
+    # print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
     X = df.drop(columns=['dx', 'lesion_id', 'image_id'])
@@ -224,15 +242,18 @@ if __name__ == "__main__":
 
     # Preprocess data: transfrom and scale
     print("############  Preprocessing data   ############")
-    t.preprocess(image_type=self.image_size)
+    t.preprocess(image_type=t.image_size)
 
     # Train model
     print("############  Training model   ############")
-    t.train_predict()
+    t.train()
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
     t.evaluate()
+
+    # Plot history
+    # plot_loss_accuracy(self.history)
 
 
 
