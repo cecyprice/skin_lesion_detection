@@ -38,12 +38,6 @@ class Trainer(object):
           self.input_shape = (75, 100, 3)
         self.input_dim = len(X)
 
-        # Training attributes
-        self.history = None
-        self.train_met_results = None
-        self.train_img_results = None
-        self.test_met_results = None
-        self.test_img_results = None
 
 
     def get_estimator(self):
@@ -159,10 +153,10 @@ class Trainer(object):
 
     def evaluate(self):
       ## SEE TRAINING MODEL ACCURACY
-      self.train_met_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
+      self.train_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
       print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
       ## TEST DATA ACCURACY
-      self.test_met_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
+      self.test_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
       print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
 
 
