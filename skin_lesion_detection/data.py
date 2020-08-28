@@ -105,7 +105,7 @@ def optimise_df(df, verbose=True, **kwargs):
 
 
 def data_augmentation(df, image_size = 'resized'):
-
+    print(df.shape)
     df = df.reset_index(drop=True)
     ## Define random image modifications
     aug = ImageDataGenerator(
@@ -134,8 +134,7 @@ def data_augmentation(df, image_size = 'resized'):
 
     ## Create np.array of augmented images from original images dataframe. Reshape to feed into dataGen
     images_array = np.array([i.reshape(input_size) for i in df[target_images].values])
-    # import ipdb; ipdb.set_trace()
-    print("images_array.shape")
+
     #construct the actual Python generator, iterate over imagegenerator object
     dataGen = aug.flow(images_array, batch_size = images_array.shape[0])
     for i in dataGen:
@@ -152,16 +151,15 @@ def data_augmentation(df, image_size = 'resized'):
     # convert i into the pandas i_df
     i_df = pd.DataFrame({target_images: im_list})
 
-
     ## concatenate new_df numpy array and new augmented image array
     com_new_df = pd.concat((new_df, i_df), axis = 1)
-    print(com_new_df)
 
     ## vertically concatenate new dataframes
 
     frames = [df, com_new_df]
     df = pd.concat(frames)
     df.reset_index(drop=True, inplace=True)
+    print(df.shape)
     return df
 
 

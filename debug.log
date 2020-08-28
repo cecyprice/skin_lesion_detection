@@ -51,3 +51,16 @@
 [0826/212821.841:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5
 [0827/113430.241:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5
 [0827/113432.362:WARNING:minidump_to_upload_parameters.cc(36)] duplicate key guid, discarding value 3799d5b9-851e-48e8-935c-b6fda671cfe5
+[0828/114221.032:ERROR:minidumpwritedump_with_crashpad_info.cc(435)] Failed to call MiniDumpWriteDump: The paging file is too small for this operation to complete. (0x800705AF)
+[0828/114221.033:ERROR:minidumpwritedump_with_crashpad_info.cc(592)] Failed to write minidump file
+[0828/114221.033:ERROR:crash_report_exception_handler.cc(132)] TryMiniDumpWriteDumpWithCrashpadInfo failed
+[0828/114221.038:ERROR:process_info.cc(359)] UncheckedAllocate
+[0828/114221.064:ERROR:minidumpwritedump_with_crashpad_info.cc(435)] Failed to call MiniDumpWriteDump: The paging file is too small for this operation to complete. (0x800705AF)
+[0828/114221.064:ERROR:minidumpwritedump_with_crashpad_info.cc(592)] Failed to write minidump file
+[0828/114221.064:ERROR:crash_report_exception_handler.cc(132)] TryMiniDumpWriteDumpWithCrashpadInfo failed
+[0828/114221.073:ERROR:process_info.cc(359)] UncheckedAllocate
+[0828/114244.753:ERROR:minidumpwritedump_with_crashpad_info.cc(435)] Failed to call MiniDumpWriteDump: Not enough memory resources are available to process this command. (0x80070008)
+[0828/114244.755:ERROR:minidumpwritedump_with_crashpad_info.cc(592)] Failed to write minidump file
+[0828/114244.755:ERROR:crash_report_exception_handler.cc(132)] TryMiniDumpWriteDumpWithCrashpadInfo failed
+[0828/114244.760:ERROR:process_info.cc(359)] UncheckedAllocate
+[0828/141619.357:ERROR:process_reader_win.cc(155)] SuspendThread: Access is denied. (0x5)
