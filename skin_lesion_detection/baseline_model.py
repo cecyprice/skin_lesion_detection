@@ -9,7 +9,7 @@ import os
 
 
 
-class MixedModel():
+class BaselineModel():
 
     def create_mlp(self, input_dim):
         """
@@ -57,7 +57,7 @@ class MixedModel():
         return model
 
 
-    def merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64)):
+    def merge_compile_models(self, input_dim, input_shape, filters=(16, 32, 64), num_labels=7):
         """
         Join forks of network to combine models for all data types
         """
@@ -70,14 +70,14 @@ class MixedModel():
 
         # add final FC layer head with 2 dense layers with final layer as the multi-classifier head
         x = Dense(4, activation="relu")(combinedInput)
-        x = Dense(7, activation="softmax")(x)
+        x = Dense(num_labels, activation="softmax")(x)
 
         # yield final model integrating categorical/numerical data and images into single diagnostic prediction
         model = Model(inputs=[mlp.input, cnn.input], outputs=x)
 
         # compile the model using BCE as loss
         opt = Adam(lr=1e-3, decay=1e-3 / 200)
-        model.compile(loss="binary_crossentropy",
+        model.compile(loss="categorical_crossentropy",
           optimizer=opt,
           metrics=['accuracy'])
 
