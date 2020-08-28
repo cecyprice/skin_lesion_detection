@@ -49,14 +49,16 @@ class TLModels():
         # Make pre-trained layers non iterable and add final layers
         for layer in model.layers:
             layer.iterable = False
+            layer.trainable = False
 
-        x = model.layers.output
-        x = Flatten()(x)
+        inp = Input(shape=input_shape)
+        base_output = model(inp)
+        x = Flatten()(base_output)
         x = Dense(64, activation='relu')(x)
         x = Dense(4, activation='relu')(x)
 
         # construct the CNN and return model
-        model = Model(model.input, x)
+        model = Model(inp, x)
         return model
 
 
