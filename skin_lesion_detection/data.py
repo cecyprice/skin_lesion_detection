@@ -104,8 +104,9 @@ def optimise_df(df, verbose=True, **kwargs):
   pass
 
 
-def data_augmentation(df):
+def data_augmentation(df, image_size = 'resized'):
 
+    df = df.reset_index(drop=True)
     ## Define random image modifications
     aug = ImageDataGenerator(
     rotation_range=30,
@@ -116,16 +117,32 @@ def data_augmentation(df):
     horizontal_flip=True,
     fill_mode="nearest")
 
-    ## Create np.array of augmented images from original images dataframe. Reshape to feed into dataGen
-    images_array = np.array([i.reshape(75,100,3) for i in df['images_resized'].values])
+    if image_size == 'resized':
+        target_images = 'images_resized'
+        input_size = (75,100,3)
+        df = df.drop(['images'], axis =1)
+        new_df = df.copy()
+        new_df = new_df.drop(['images_resized'], axis=1)
 
+
+    elif image_size == 'full_size':
+        target_images = 'images'
+        input_size = (450,600,3)
+        df = df.drop(['images_resized'], axis =1)
+        new_df = df.copy()
+        new_df = new_df.drop(['images'], axis=1)
+
+    ## Create np.array of augmented images from original images dataframe. Reshape to feed into dataGen
+    images_array = np.array([i.reshape(input_size) for i in df[target_images].values])
+    # import ipdb; ipdb.set_trace()
+    print("images_array.shape")
     #construct the actual Python generator, iterate over imagegenerator object
-    dataGen = aug.flow(images_array, batch_size = len(df))
+    dataGen = aug.flow(images_array, batch_size = images_array.shape[0])
     for i in dataGen:
         break
 
     ## flatten i before concatenating it into new dataframe copy
-    i = i.reshape(len(df), 22500)
+    i = i.reshape(len(df), input_size[0]*input_size[1]*input_size[2])
 
     ## turn i from array into list so it can be converted into pd
     im_list = []
@@ -133,22 +150,18 @@ def data_augmentation(df):
         im_list.append(im)
 
     # convert i into the pandas i_df
-    i_df = pd.DataFrame({'images_resized': im_list})
+    i_df = pd.DataFrame({target_images: im_list})
 
-    # create new dataframe without image column and convert in np.array
-    new_df = df.loc[:, df.columns != 'images_resized']
 
     ## concatenate new_df numpy array and new augmented image array
-    new_df = pd.concat((new_df, i_df), axis = 1)
-
-    ## convert new_df back into pandas
-    new_df = pd.DataFrame(new_df)
+    com_new_df = pd.concat((new_df, i_df), axis = 1)
+    print(com_new_df)
 
     ## vertically concatenate new dataframes
-    frames = [df, new_df]
+
+    frames = [df, com_new_df]
     df = pd.concat(frames)
     df.reset_index(drop=True, inplace=True)
-
     return df
 
 
