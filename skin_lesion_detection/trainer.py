@@ -8,7 +8,8 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 
-from test_mixed_model import MixedModel
+from baseline_model import BaselineModel
+from transfer_learning_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
 
@@ -44,8 +45,15 @@ class Trainer(object):
 
 
     def get_estimator(self):
-        # get mixed model as self.mixed_model
-        self.model = MixedModel().merge_compile_models(input_dim=self.input_dim, input_shape=self.input_shape)
+        # get different models as self.model
+        if self.estimator=='baseline_model':
+            self.model = BaselineModel().merge_compile_models(input_dim=self.input_dim, input_shape=self.input_shape, num_labels=self.num_labels)
+        elif self.estimator=='tl_vgg':
+            self.model = TLModels().tl_merge_compile_models(input_dim=self.input_dim, input_shape=self.input_shape, selection='vgg16', num_labels=self.num_labels)
+        elif self.estimator=='tl_resnet':
+            self.model = TLModels().tl_merge_compile_models(input_dim=self.input_dim, input_shape=self.input_shape, selection='resnet', num_labels=self.num_labels)
+        elif self.estimator=='tl_densenet':
+            self.model = TLModels().tl_merge_compile_models(input_dim=self.input_dim, input_shape=self.input_shape, selection='densenet', num_labels=self.num_labels)
 
 
     def set_pipeline(self):
@@ -87,6 +95,8 @@ class Trainer(object):
         """
         # categorise y
         ohe = OneHotEncoder(handle_unknown='ignore')
+        import ipdb; ipdb.set_trace()
+        self.num_labels = len(np.unique(self.y.values))
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
 
@@ -113,6 +123,7 @@ class Trainer(object):
         self.pixels_to_array(image_type=self.image_size)
         print("-----------STATUS UPDATE: DATA SPLIT INTO X/Y TEST/TRAIN MET/IM'-----------")
 
+
     def pixels_to_array(self, image_type="full_size"):
         """
         Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
@@ -128,19 +139,24 @@ class Trainer(object):
             self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
         print("-----------STATUS UPDATE: PIXEL ARRAGYS EXTRACTED'-----------")
 
+
     #@simple_time_tracker
-    def train(self, gridsearch=False):
+    def train(self, gridsearch=False, estimator='baseline_model'):
+        # assign self.estimator as desired estimator and set self.model via get_estimator()
+        self.estimator=estimator
         self.get_estimator()
-        es = EarlyStopping(monitor="val_loss", mode="auto", patience=50)
+
+        # define es criteria and fit model
+        es = EarlyStopping(monitor='val_loss', mode='min', patience=25, verbose=1, restore_best_weights=True)
         self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
-        validation_split=0.3,
-        epochs=200,
-        callbacks = [es],
-        batch_size=8,
-        verbose = 1)
+            validation_split=0.3,
+            epochs=200,
+            callbacks = [es],
+            batch_size=8,
+            verbose = 1)
+
 
     def evaluate(self):
-
       ## SEE TRAINING MODEL ACCURACY
       self.train_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
       print('Train Loss: {} - Train Accuracy: {}'.format(self.train_met_results[0], self.train_met_results[1]))
@@ -150,6 +166,7 @@ class Trainer(object):
       self.test_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
       print('Train Loss: {} - Train Accuracy: {}'.format(self.test_met_results[0], self.test_met_results[1]))
       # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(self.test_met_results[0], self.test_met_results[1], self.test_met_results[2], self.test_met_results[3]))
+
 
     def plot_loss_accuracy(history):
 
@@ -250,7 +267,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train()
+    t.train(estimator='baseline_model')
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
