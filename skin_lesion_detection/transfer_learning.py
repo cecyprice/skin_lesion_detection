@@ -1,12 +1,11 @@
-import tensorflow as tf
-from tf import keras
-from tf.keras import Sequential
-from tf.keras.applications.densenet import Densenet121
-from tf.keras.applications import VGG16, ResNet50
-from tf.keras.callbacks import EarlyStopping
+from tensorflow import keras
+from tensorflow.keras import Sequential
+# from tensorflow.keras.applications.densenet import Densenet121
+from tensorflow.keras.applications import VGG16, VGG19, ResNet50
+from tensorflow.keras.callbacks import EarlyStopping
 
 
-class CNN_model():
+# class CNN_model():
     # Refactor function into the CNN_model class
 
 def build_model(selection='vgg16'):
@@ -21,21 +20,22 @@ def build_model(selection='vgg16'):
     if selection == 'vgg16':
         model = VGG16(weights='imagenet',
                       input_shape=input_shape,
-                      include_top=False)
+                      include_top=False,
+                      classes=7)
 
     # Implement ResNet model
+    if selection == 'vgg19':
+        model = VGG19(weights='imagenet',
+                      input_shape=input_shape,
+                      include_top=False,
+                      classes=7)
+
+    # Implement DenseNet model
     if selection == 'resnet':
         model = ResNet50(weights='imagenet',
                          input_shape=input_shape,
                          include_top=False,
                          classes=7)
-
-    # Implement DenseNet model
-    if selection == 'densenet':
-        model = DenseNet121(weights='imagenet',
-                            input_shape=input_shape,
-                            include_top=False,
-                            classes=7)
 
     # Make pre-trained layers non iterable and add final layers
     for layer in model.layers:
