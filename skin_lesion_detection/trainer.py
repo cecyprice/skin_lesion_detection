@@ -152,12 +152,15 @@ class Trainer(object):
 
 
     def evaluate(self):
-      ## SEE TRAINING MODEL ACCURACY
-      self.train_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
-      print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(train_met_results[0], train_met_results[1], train_met_results[2], train_met_results[3]))
-      ## TEST DATA ACCURACY
-      self.test_results = self.model.evaluate([self.X_met_test, self.X_im_test], self.y_test, verbose=0)
-      print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
+        ## SEE TRAINING MODEL ACCURACY
+        self.train_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
+        print('Train Loss: {} - Train Accuracy: {}'.format(self.train_results[0], self.train_results[1]))
+        # print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(self.train_met_results[0], self.train_met_results[1], train_met_results[2], train_met_results[3]))
+
+        ## TEST DATA ACCURACY
+        self.test_results = self.model.evaluate(x=[self.X_met_test, self.X_im_test], y=self.y_test, verbose=1)
+        print('Test Loss: {} - Test Accuracy: {}'.format(self.test_results[0], self.test_results[1]))
+        # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
 
 
     def plot_loss_accuracy(history):
@@ -255,7 +258,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='baseline_model')
+    t.train(estimator='tl_vgg')
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
