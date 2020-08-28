@@ -1,3 +1,22 @@
+BUCKET_NAME=bucket_skin_cancer_detection
+
+BUCKET_TRAINING_FOLDER="trainings"
+
+REGION=europe-west1
+
+PYTHON_VERSION=3.7
+
+FRAMEWORK=scikit-learn
+
+RUNTIME_VERSION=1.15
+
+PACKAGE_NAME=skin_lesion_detection
+
+FILENAME=trainer
+
+JOB_NAME=skin_cancer_detection_training_pipeline_$(shell date +'%Y%m%d_%H%M%S')
+
+
 # ----------------------------------
 #          INSTALL & TEST
 # ----------------------------------
@@ -58,3 +77,15 @@ pypi_test:
 
 pypi:
 	@twine upload dist/* -u lologibus2
+
+
+
+gcp_submit_training:
+	gcloud ai-platform jobs submit training ${JOB_NAME} \
+		--job-dir gs://${BUCKET_NAME}/${BUCKET_TRAINING_FOLDER} \
+		--package-path ${PACKAGE_NAME} \
+		--module-name ${PACKAGE_NAME}.${FILENAME} \
+		--python-version=${PYTHON_VERSION} \
+		--runtime-version=${RUNTIME_VERSION} \
+		--region ${REGION} \
+		--stream-logs
