@@ -14,7 +14,6 @@ REQUIRED_PACKAGES = [
     'bs4==0.0.1',
     'termcolor',
     'keras-tuner',
-    'glob',
     'sklearn',
     'imageio',
     'PIL',
