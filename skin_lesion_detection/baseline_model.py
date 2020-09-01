@@ -16,11 +16,12 @@ class BaselineModel():
         Create Multi-Layer Perceptron as left_hand fork of mixed neural network for numeric and categorical explanatory variables
         """
         model = Sequential()
-        model.add(Dense(8, input_dim=input_dim, activation="relu"))
+        model.add(Dense(16, input_dim=input_dim, activation="relu"))
+        model.add(Dense(8, activation="relu"))
         model.add(Dense(4, activation="relu"))
         return model
 
-    def create_cnn(self, input_shape, filters=(16, 32, 64)):
+    def create_cnn(self, input_shape, filters=(126, 64, 32, 16)):
         """
         Create Convolutional Neural Network as right-hand fork of mixed neural network for pixel data
         """

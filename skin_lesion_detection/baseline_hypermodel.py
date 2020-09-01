@@ -18,7 +18,7 @@ from trainer import Trainer
 
 
 
-class BaselineRegressionHyperModel(HyperModel):
+class BaselineHyperModel(HyperModel):
   """
   Build HyperModel allowing hyperparamter tuning
   """
@@ -38,6 +38,7 @@ class BaselineRegressionHyperModel(HyperModel):
     mlp_fork.add(Dense(4, activation="relu"))
 
     # cnn fork
+    chanDim = -1
     inputs = Input(shape=self.input_shape)
 
     for i in range(3):
@@ -53,7 +54,7 @@ class BaselineRegressionHyperModel(HyperModel):
 
     x = Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
               activation=hp.Choice('dense_activation', values=['relu', 'tanh', 'sigmoid'], default='relu'))(x)
-    x = BatchNormalization(axis=-1)(x)
+    x = BatchNormalization(axis=chanDim)(x)
     x = Dropout(0.5)(x)
 
     x = Dense(4)(x)
@@ -82,7 +83,7 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(1000)
+    df = get_data(nrows=100)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
@@ -101,7 +102,7 @@ if __name__ == "__main__":
 
     # Seach hyperparamaters for optimal values
     print(colored("############  Tuning hyperparamaters   ############", 'blue'))
-    hypermodel = BaselineRegressionHyperModel(input_dim=t.input_dim, input_shape=t.input_shape)
+    hypermodel = BaselineHyperModel(input_dim=t.input_dim, input_shape=t.input_shape)
 
     tuner = RandomSearch(hypermodel,
                 objective='val_accuracy',
@@ -116,6 +117,7 @@ if __name__ == "__main__":
                 verbose=1,
                 callbacks=[hypermodel.es])
 
+    import ipdb; ipdb.set_trace()
     best_model = tuner.get_best_models(num_models=1)[0]
 
     print(colored(f"Best Model: {best_model}", 'green'))
