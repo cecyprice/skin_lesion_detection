@@ -12,7 +12,9 @@ from baseline_model import BaselineModel
 from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
+import joblib
 from joblib import dump, load
+import pickle
 
 import pandas as pd
 import numpy as np
@@ -149,10 +151,10 @@ class Trainer(object):
         self.get_estimator()
 
         # define es criteria and fit model
-        es = EarlyStopping(monitor='val_loss', mode='min', patience=25, verbose=1, restore_best_weights=True)
+        es = EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1, restore_best_weights=True)
         self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
             validation_split=0.3,
-            epochs=200,
+            epochs=1,
             callbacks = [es],
             batch_size=8,
             verbose = 1)
@@ -168,7 +170,6 @@ class Trainer(object):
         self.test_results = self.model.evaluate(x=[self.X_met_test, self.X_im_test], y=self.y_test, verbose=1)
         print('Test Loss: {} - Test Accuracy: {}'.format(self.test_results[0], self.test_results[1]))
         # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
-
 
     def plot_loss_accuracy(history):
 
@@ -186,20 +187,27 @@ class Trainer(object):
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
 
+    # def save_history(self):
+    #     """
+    #     Save the model into a .joblib
+    #     """
+    #     joblib_file = 'vgg_history.joblib'
+    #     joblib.dump(self.history, file)
+    #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-        """
-        Save the model into a .joblib
-        """
-        joblib.dump(self.model, 'vgg_run1_model.joblib')
+
+        ## serialize model to json
+        model_json = self.model.to_json()
+        with open("modelname.json", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
+            json_file.write(model_json)
+
+        # serialize weights to HDF5
+        self.model.save_weights("model.h5") ## PUT IN MODEL NAME + '.h5' HERE
+
         print("-------------------MODEL SAVED----------------")
 
-    def save_history(self):
-        """
-        Save the model into a .joblib
-        """
-        joblib.dump(self.history, 'vgg_run1_history.joblib')
-        print("-------------------HISTORY SAVED----------------")
+
 
     # ### MLFlow methods
     # @memoized_property
@@ -278,17 +286,9 @@ if __name__ == "__main__":
     print("############  Evaluating model   ############")
     t.evaluate()
 
-    ##Plot history
-    plot_loss_accuracy(self.history)
-
-    ## save model
+    # ## save model
     print("############  Saving model  ############")
-    save_model()
-
-     ## save history
-    print("############  Saving history  ############")
-    save_history()
-
+    t.save_model()
 
 
 
