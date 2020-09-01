@@ -1,19 +1,25 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+# from skin_lesion_detection.data import get_data
 
 
-st.markdown("""# Skin Lesion Detection Engine
-## This is a sub header
-This is text""")
-df = pd.DataFrame({
-          'first column': list(range(1, 11)),
-          'second column': np.arange(10, 101, 10)
-        })
-# this slider allows the user to select a number of lines
-# to display in the dataframe
-# the selected value is returned by st.slider
-line_count = st.slider('Select a line count', 1, 10, 3)
-# and used in order to select the displayed lines
-head_df = df.head(line_count)
-head_df
+st.markdown("""# Skin Lesion Detection Neural Network
+Upload your photo to identify the type of skin lesion that you have
+##""")
+
+st.markdown('''### Image dataset
+''')
+# df = get_data()
+# df
+
+if st.button('Upload photo'):
+    # print is visible in server output, not in the page
+    print('Photo uploading!')
+    st.write('Photo uploaded!')
+
+
+if st.button('Diagnose'):
+    # print is visible in server output, not in the page
+    print('Runnign diagnosis!')
+    st.write('Runnign diagnosis!')
