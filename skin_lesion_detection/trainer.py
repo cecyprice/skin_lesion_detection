@@ -10,10 +10,10 @@ from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import model_from_json
 
 
-from skin_lesion_detection.baseline_model import BaselineModel
-from skin_lesion_detection.transfer_learning_models import TLModels
-from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
-from skin_lesion_detection.encoders import ImageScaler
+from baseline_model import BaselineModel
+from tl_models import TLModels
+from data import get_data, clean_df, balance_nv, data_augmentation
+from encoders import ImageScaler
 from baseline_model import BaselineModel
 from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
@@ -187,7 +187,7 @@ class Trainer(object):
     #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-        name = "Densenet_test" ### NAME YOUR TEST RUN!!!
+        name = "baseline_model_test" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
@@ -279,12 +279,9 @@ if __name__ == "__main__":
     print("############  Preprocessing data   ############")
     t.preprocess()
 
-    # t.save_pipeline()
-    # app_model = joblib.load("pipeline.joblib")
-
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
+    t.train(estimator='baseline_model') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
@@ -294,11 +291,9 @@ if __name__ == "__main__":
     print("############  Saving model  ############")
     t.save_model()
 
+    # print("############  Saving pipeline  ############")
+    # t.save_pipeline()
+    # app_model = joblib.load("pipeline.joblib")
 
 
 
-## Matt qs:
-        ## should we write an evaluate function? model.evalute for cnns
-        ## if we are writing evaluate function: y_test/pred = 7 column OHE matrix
-        ## either: convert back to classes/0-6 numbers OR map one matrix onto another (TRUE/FALSE) and
-        ## take number of rows containing FALSE / total number of rows

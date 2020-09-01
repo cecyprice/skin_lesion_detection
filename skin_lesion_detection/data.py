@@ -9,7 +9,7 @@ from imblearn.under_sampling import RandomUnderSampler
 import imageio
 from PIL import Image
 
-from skin_lesion_detection.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
+from params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
 from google.cloud import storage
 
 def get_data(random_state=1, local=True, nrows=None):
@@ -30,6 +30,8 @@ def get_data(random_state=1, local=True, nrows=None):
     base_skin_dir = os.path.join('..','dataset')
     imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
                       for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
+
+    df = pd.read_csv(os.path.join(base_skin_dir, 'HAM10000_metadata.csv'), nrows=nrows)
 
     df['path'] = df['image_id'].map(imageid_path_dict.get)
     df['cell_type'] = df['dx'].map(lesion_type_dict.get)
