@@ -261,13 +261,13 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=10)
+    df = get_data(nrows=None)
     print(df)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    #df = balance_nv(df, 1000)
-    #df = data_augmentation(df, image_size=image_size)
+    df = balance_nv(df, 1000)
+    df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class

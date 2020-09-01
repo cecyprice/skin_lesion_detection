@@ -12,7 +12,7 @@ from PIL import Image
 from skin_lesion_detection.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
 from google.cloud import storage
 
-def get_data(random_state=1, local=False, nrows=None):
+def get_data(random_state=1, local=True, nrows=None):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
