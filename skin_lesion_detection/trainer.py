@@ -9,7 +9,7 @@ import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 
 from baseline_model import BaselineModel
-from transfer_learning_models import TLModels
+from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
 
@@ -37,7 +37,7 @@ class Trainer(object):
           self.target_images = 'images_resized'
           self.input_shape = (75, 100, 3)
 
-          
+
     def get_estimator(self):
         # get different models as self.model
         if self.estimator=='baseline_model':

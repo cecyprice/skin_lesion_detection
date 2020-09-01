@@ -12,13 +12,13 @@ from kerastuner.tuners import Hyperband
 from kerastuner import HyperModel
 from kerastuner.tuners.randomsearch import RandomSearch
 
-from transfer_learning_models import TLModels
+from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from trainer import Trainer
 
 
 
-class RegressionHyperModel(HyperModel):
+class BaselineRegressionHyperModel(HyperModel):
   """
   Build HyperModel allowing hyperparamter tuning
   """
@@ -38,7 +38,6 @@ class RegressionHyperModel(HyperModel):
     mlp_fork.add(Dense(4, activation="relu"))
 
     # cnn fork
-    chanDim = -1
     inputs = Input(shape=self.input_shape)
 
     for i in range(3):
@@ -54,7 +53,7 @@ class RegressionHyperModel(HyperModel):
 
     x = Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
               activation=hp.Choice('dense_activation', values=['relu', 'tanh', 'sigmoid'], default='relu'))(x)
-    x = BatchNormalization(axis=chanDim)(x)
+    x = BatchNormalization(axis=-1)(x)
     x = Dropout(0.5)(x)
 
     x = Dense(4)(x)
@@ -83,7 +82,7 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=100)
+    df = get_data(1000)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
@@ -102,7 +101,7 @@ if __name__ == "__main__":
 
     # Seach hyperparamaters for optimal values
     print(colored("############  Tuning hyperparamaters   ############", 'blue'))
-    hypermodel = RegressionHyperModel(input_dim=t.input_dim, input_shape=t.input_shape)
+    hypermodel = BaselineRegressionHyperModel(input_dim=t.input_dim, input_shape=t.input_shape)
 
     tuner = RandomSearch(hypermodel,
                 objective='val_accuracy',
