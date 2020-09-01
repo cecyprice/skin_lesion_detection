@@ -2,23 +2,29 @@ import warnings
 from termcolor import colored
 import numpy as np
 import os
+from tensorflow import keras
 import tensorflow.keras
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.applications import densenet
+from tensorflow.keras.applications.resnet import ResNet50
 from tensorflow.keras.layers import Input, concatenate, BatchNormalization, Dense, Dropout, Activation, Flatten, Embedding, Conv1D, Conv2D, MaxPooling2D, MaxPool1D
 import kerastuner
 from kerastuner.tuners import Hyperband
 from kerastuner import HyperModel
 from kerastuner.tuners.randomsearch import RandomSearch
 
-from transfer_learning_models import TLModels
+
+from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from trainer import Trainer
 
 
 
-class RegressionHyperModel(HyperModel):
+class TLRegressionHyperModel(HyperModel):
   """
   Build HyperModel allowing hyperparamter tuning
   """
@@ -32,80 +38,52 @@ class RegressionHyperModel(HyperModel):
 
   def build(self, hp):
     # mlp fork
-    mlp_fork = Sequential()
-    mlp_fork.add(Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
+    self.mlp_fork = Sequential()
+    self.mlp_fork.add(Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
                         input_dim=self.input_dim,
                         activation="relu"))
-    mlp_fork.add(Dense(4, activation="relu"))
+    self.mlp_fork.add(Dense(4, activation="relu"))
 
     # cnn fork
     if self.selection == 'vgg16':
             model = VGG16(weights='imagenet',
-                          input_shape=input_shape,
+                          input_shape=self.input_shape,
                           include_top=False)
 
-        # Implement ResNet model
     if self.selection == 'resnet':
         model = ResNet50(weights='imagenet',
-                         input_shape=input_shape,
-                         include_top=False,
-                         classes=7)
+                         input_shape=self.input_shape,
+                         include_top=False)
 
     if self.selection == 'densenet':
         model = DenseNet121(weights='imagenet',
-                            input_shape=input_shape,
-                            include_top=False,
-                            classes=7)chanDim = -1
+                            input_shape=self.input_shape,
+                            include_top=False)
 
     for layer in model.layers:
-            layer.iterable = False
-            layer.trainable = False
+        layer.iterable = False
+        layer.trainable = False
 
-    inp = Input(shape=input_shape)
+    inp = Input(shape=self.input_shape)
 
-        base_output = model(inp)
-        x = Flatten()(base_output)
-        x = Dense(64, activation='relu')(x)
-        x = Dense(4, activation='relu')(x)
-
-        # construct the CNN and return model
-        model = Model(inp, x)
-        return model
-    inputs = Input(shape=self.input_shape)
-
-    for i in range(3):
-        if i == 0:
-            x = inputs
-        x = Conv2D(filters=hp.Choice('num_filters', values=[16, 32, 64], default=64),
-                  kernel_size=hp.Choice('kernel_size', values=[2, 3, 4, 5], default=3), padding="same")(x)
-        x = Activation("relu")(x)
-        x = BatchNormalization(axis=chanDim)(x)
-        x = MaxPooling2D(pool_size=(2, 2))(x)
-
-    x = Flatten()(x)
-
+    base_output = model(inp)
+    x = Flatten()(base_output)
     x = Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
-              activation=hp.Choice('dense_activation', values=['relu', 'tanh', 'sigmoid'], default='relu'))(x)
-    x = BatchNormalization(axis=chanDim)(x)
-    x = Dropout(0.5)(x)
+            activation=hp.Choice('dense_activation', values=['relu', 'tanh', 'sigmoid'], default='relu'))(x)
+    x = Dropout(0.5)(x)x = Dense(4, activation='relu')(x)
 
-    x = Dense(4)(x)
-    x = Activation("relu")(x)
-
-    cnn_fork = Model(inputs, x)
-
+    self.cnn_fork = Model(inp, x)
 
     # combine MLP and CNN forks to create merged predictor
-    combinedInput = concatenate([mlp_fork.output, cnn_fork.output])
-
+    combinedInput = concatenate([self.mlp_fork.output, self.cnn_fork.output])
     out = Dense(4, activation="relu")(combinedInput)
     out = Dense(self.num_labels, activation="softmax")(out)
-    merged_model = Model(inputs=[mlp_fork.input, cnn_fork.input], outputs=out)
+    merged_model = Model(inputs=[self.mlp_fork.input, self.cnn_fork.input], outputs=out)
 
-    # compile the model using BCE as loss and Adam otpimizer with varied values
     merged_model.compile(optimizer=Adam(hp.Float('learning_rate', min_value=1e-5, max_value=1e-2, sampling='LOG', default=1e-3)),
                         loss="categorical_crossentropy",
                         metrics=['accuracy'])
+
     return merged_model
 
 
@@ -134,7 +112,7 @@ if __name__ == "__main__":
 
     # Seach hyperparamaters for optimal values
     print(colored("############  Tuning hyperparamaters   ############", 'blue'))
-    hypermodel = RegressionHyperModel(input_dim=t.input_dim, input_shape=t.input_shape)
+    hypermodel = TLRegressionHyperModel(input_dim=t.input_dim, input_shape=t.input_shape, selection='vgg16')
 
     tuner = RandomSearch(hypermodel,
                 objective='val_accuracy',
@@ -149,10 +127,10 @@ if __name__ == "__main__":
                 verbose=1,
                 callbacks=[hypermodel.es])
 
+    # import ipdb; ipdb.set_trace()
     best_model = tuner.get_best_models(num_models=1)[0]
 
     print(colored(f"Best Model: {best_model}", 'green'))
-
 
     # Evaluate with test data
     print(colored("############  Tuning hyperparamaters   ############", 'blue'))

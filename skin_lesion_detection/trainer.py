@@ -9,7 +9,7 @@ import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 
 from baseline_model import BaselineModel
-from transfer_learning_models import TLModels
+from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
 from joblib import dump, load
