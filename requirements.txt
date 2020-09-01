@@ -15,8 +15,3 @@ imblearn
 keras-tuner
 colored
 scikit-learn>=0.23.0
-os
-numpy
-joblib
-glob
-sklearn
