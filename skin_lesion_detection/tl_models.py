@@ -41,7 +41,7 @@ class TLModels():
 
         # Implement DenseNet model
         if selection == 'densenet':
-            model = DenseNet121(weights='imagenet',
+            model = densenet(weights='imagenet',
                                 input_shape=input_shape,
                                 include_top=False,
                                 classes=7)
