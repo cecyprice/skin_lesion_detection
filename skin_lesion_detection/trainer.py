@@ -12,6 +12,7 @@ from baseline_model import BaselineModel
 from transfer_learning_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
+from joblib import dump, load
 
 import pandas as pd
 import numpy as np
@@ -37,7 +38,7 @@ class Trainer(object):
           self.target_images = 'images_resized'
           self.input_shape = (75, 100, 3)
 
-          
+
     def get_estimator(self):
         # get different models as self.model
         if self.estimator=='baseline_model':
@@ -190,10 +191,15 @@ class Trainer(object):
         """
         Save the model into a .joblib
         """
-        joblib.dump(self.pipeline, 'model.joblib')
-        print(colored("model.joblib saved locally", "green"))
-        pass
+        joblib.dump(self.model, 'vgg_run1_model.joblib')
+        print("-------------------MODEL SAVED----------------")
 
+    def save_history(self):
+        """
+        Save the model into a .joblib
+        """
+        joblib.dump(self.history, 'vgg_run1_history.joblib')
+        print("-------------------HISTORY SAVED----------------")
 
     # ### MLFlow methods
     # @memoized_property
@@ -266,14 +272,23 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet
+    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
     t.evaluate()
 
-    # Plot history
-    # plot_loss_accuracy(self.history)
+    ##Plot history
+    plot_loss_accuracy(self.history)
+
+    ## save model
+    print("############  Saving model  ############")
+    save_model()
+
+     ## save history
+    print("############  Saving history  ############")
+    save_history()
+
 
 
 
