@@ -12,6 +12,12 @@ twine
 Keras>=2.3.0
 tensorflow>=2.3.0
 imblearn
-kerastuner
+keras-tuner
 colored
 scikit-learn>=0.23.0
+baseline_model
+os
+numpy
+joblib
+glob
+sklearn
