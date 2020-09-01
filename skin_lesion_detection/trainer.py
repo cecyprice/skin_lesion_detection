@@ -7,14 +7,12 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
+from keras.models import model_from_json
 
 from baseline_model import BaselineModel
 from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
-import joblib
-from joblib import dump, load
-import pickle
 
 import pandas as pd
 import numpy as np
@@ -154,7 +152,7 @@ class Trainer(object):
         es = EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1, restore_best_weights=True)
         self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
             validation_split=0.3,
-            epochs=1,
+            epochs=75,
             callbacks = [es],
             batch_size=8,
             verbose = 1)
@@ -196,17 +194,16 @@ class Trainer(object):
     #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-
+        name = "Densenet_test" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
-        with open("modelname.json", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
+        with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
             json_file.write(model_json)
 
         # serialize weights to HDF5
-        self.model.save_weights("model.h5") ## PUT IN MODEL NAME + '.h5' HERE
+        self.model.save_weights(f"{name}.h5") ## PUT IN MODEL NAME + '.h5' HERE
 
         print("-------------------MODEL SAVED----------------")
-
 
 
     # ### MLFlow methods
@@ -280,7 +277,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
+    t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
@@ -289,8 +286,6 @@ if __name__ == "__main__":
     # ## save model
     print("############  Saving model  ############")
     t.save_model()
-
-
 
 
 
