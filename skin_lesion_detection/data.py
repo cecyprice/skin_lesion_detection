@@ -9,43 +9,74 @@ from imblearn.under_sampling import RandomUnderSampler
 import imageio
 from PIL import Image
 
+from skin_lesion_detection.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
+from google.cloud import storage
 
-def get_data(random_state=1, nrows=None):
+def get_data(random_state=1, local=False, nrows=None):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
-  base_skin_dir = os.path.join('..','dataset')
-  imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
-                     for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
 
-  lesion_type_dict = {
-    'nv': 'Melanocytic nevi',
-    'mel': 'Melanoma',
-    'bkl': 'Benign keratosis-like lesions ',
-    'bcc': 'Basal cell carcinoma',
-    'akiec': 'Actinic keratoses',
-    'vasc': 'Vascular lesions',
-    'df': 'Dermatofibroma'
-  }
+  if local:
+    base_skin_dir = os.path.join('..','dataset')
+    imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
+                      for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
 
-  df = pd.read_csv(os.path.join(base_skin_dir, 'HAM10000_metadata.csv'), nrows=nrows)
+    lesion_type_dict = {
+       'nv': 'Melanocytic nevi',
+       'mel': 'Melanoma',
+       'bkl': 'Benign keratosis-like lesions ',
+       'bcc': 'Basal cell carcinoma',
+       'akiec': 'Actinic keratoses',
+       'vasc': 'Vascular lesions',
+       'df': 'Dermatofibroma'
+    }
 
-  df['path'] = df['image_id'].map(imageid_path_dict.get)
-  df['cell_type'] = df['dx'].map(lesion_type_dict.get)
-  df['cell_type_idx'] = pd.Categorical(df['cell_type']).codes
+    df['path'] = df['image_id'].map(imageid_path_dict.get)
+    df['cell_type'] = df['dx'].map(lesion_type_dict.get)
+    df['cell_type_idx'] = pd.Categorical(df['cell_type']).codes
 
-  df['path'].dropna(inplace=True)
+    ## fill missing values with mean age
+    df['age'].fillna((df['age'].mean()), inplace = True)
+    df = df.dropna()
 
-  df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
-  df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((100,75)))).apply(lambda x : x.reshape(22500))
+    df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
+    df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((75,100)))).apply(lambda x : x.reshape(22500))
 
-  return df
+    return df
+
+  else:
+
+    client = storage.Client()
+    bucket = client.bucket(BUCKET_NAME)
+    blob = bucket.get_blob('dataset/HAM10000_metadata.csv')
+    csv_name = blob.name.split("/")[1]
+    blob.download_to_filename(csv_name)
+    df = pd.read_csv(csv_name, nrows=nrows)
+
+    dict_img = {'image_id': [], 'images': []}
+    blobs=list(bucket.list_blobs())
+
+    for blob in blobs:
+      blob_name = blob.name
+      if ".jpg" in blob_name:
+        img_name = blob_name.split("/")[2]
+        blob_0 = bucket.blob(blob_name)
+        blob_0.download_to_filename(img_name)
+        img_0 = np.asarray(Image.open(img_name))
+        id = img_name.split(".")[0]
+        dict_img['image_id'].append(id)
+        dict_img['images'].append(img_0.reshape(810000))
+
+    df2 = pd.DataFrame.from_dict(dict_img)
+    df3 = df2.merge(df, how='left', on='image_id')
+
+    return df3
 
 
 def clean_df(df):
-  ## fill missing values with mean age
-  df['age'].fillna((df['age'].mean()), inplace = True)
 
+  df['age'].fillna((df['age'].mean()), inplace = True)
   ## drop duplicates
   df = df.drop_duplicates(subset=['lesion_id'], keep = 'first')
 
@@ -58,43 +89,43 @@ def clean_df(df):
 
 def balance_nv(df, under_sample_size):
 
-        ## isolate nv rows
-        data_nv = df[df['dx'] == 'nv']
+  ## isolate nv rows
+  data_nv = df[df['dx'] == 'nv']
 
-        # define scaling parameters
-        sample_size = under_sample_size
-        scaling = under_sample_size / data_nv.shape[0]
+  # define scaling parameters
+  sample_size = under_sample_size
+  scaling = under_sample_size / data_nv.shape[0]
 
-        # stratified sampling
-        rus = RandomUnderSampler(sampling_strategy={'lower extremity' : int(1224*scaling),
-                                                    'trunk' : int(1153*scaling),
-                                                    'back' : int(1058*scaling),
-                                                    'abdomen' : int(719*scaling),
-                                                    'upper extremity' : int(504*scaling) ,
-                                                    'foot' : int(209*scaling),
-                                                    'unknown' : int(175*scaling),
-                                                    'chest' : int(112*scaling),
-                                                    'face' : int(61*scaling),
-                                                    'neck' : int(60*scaling),
-                                                    'genital' : int(43*scaling),
-                                                    'hand' : int(39*scaling),
-                                                    'scalp' : int(24*scaling),
-                                                    'ear' : int(19*scaling),
-                                                    'acral' : int(3*scaling)+1
-                                                   },
-                                   random_state=None,
-                                   replacement=False,
-                                )
+  # stratified sampling
+  rus = RandomUnderSampler(sampling_strategy={'lower extremity' : int(1224*scaling),
+                                              'trunk' : int(1153*scaling),
+                                              'back' : int(1058*scaling),
+                                              'abdomen' : int(719*scaling),
+                                              'upper extremity' : int(504*scaling) ,
+                                              'foot' : int(209*scaling),
+                                              'unknown' : int(175*scaling),
+                                              'chest' : int(112*scaling),
+                                              'face' : int(61*scaling),
+                                              'neck' : int(60*scaling),
+                                              'genital' : int(43*scaling),
+                                              'hand' : int(39*scaling),
+                                              'scalp' : int(24*scaling),
+                                              'ear' : int(19*scaling),
+                                              'acral' : int(3*scaling)+1
+                                             },
+                             random_state=None,
+                             replacement=False,
+                          )
 
-        ## fit strtaified sampling model
-        n_x, n_y = rus.fit_resample(data_nv, data_nv['localization'])
+  ## fit strtaified sampling model
+  n_x, n_y = rus.fit_resample(data_nv, data_nv['localization'])
 
-        ## delete nv rows from original dataset
-        no_nv_data = df[df.dx != 'nv']
+  ## delete nv rows from original dataset
+  no_nv_data = df[df.dx != 'nv']
 
-        df = pd.concat([n_x, no_nv_data], axis=0)
+  df = pd.concat([n_x, no_nv_data], axis=0)
 
-        return df
+  return df
 
 
 def optimise_df(df, verbose=True, **kwargs):
@@ -165,6 +196,7 @@ def data_augmentation(df, image_size = 'resized'):
 
 if __name__ == '__main__':
   print('cleaned dataframe')
+  get_data()
 
 
 # ## ap = argparse.ArgumentParser()

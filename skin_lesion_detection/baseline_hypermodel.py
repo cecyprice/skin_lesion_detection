@@ -12,9 +12,9 @@ from kerastuner.tuners import Hyperband
 from kerastuner import HyperModel
 from kerastuner.tuners.randomsearch import RandomSearch
 
-from transfer_learning_models import TLModels
+from SkinLesionDetection.transfer_learning_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
-from trainer import Trainer
+from SkinLesionDetection.trainer import Trainer
 
 
 

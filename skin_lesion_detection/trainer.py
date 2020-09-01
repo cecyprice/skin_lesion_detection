@@ -8,10 +8,10 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 
-from baseline_model import BaselineModel
-from transfer_learning_models import TLModels
-from data import get_data, clean_df, balance_nv, data_augmentation
-from encoders import ImageScaler
+from skin_lesion_detection.baseline_model import BaselineModel
+from skin_lesion_detection.transfer_learning_models import TLModels
+from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
+from skin_lesion_detection.encoders import ImageScaler
 
 import pandas as pd
 import numpy as np
@@ -37,7 +37,7 @@ class Trainer(object):
           self.target_images = 'images_resized'
           self.input_shape = (75, 100, 3)
 
-          
+
     def get_estimator(self):
         # get different models as self.model
         if self.estimator=='baseline_model':
@@ -246,13 +246,13 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=None)
-
+    df = get_data(nrows=10)
+    print(df)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    df = balance_nv(df, 1000)
-    df = data_augmentation(df, image_size=image_size)
+    #df = balance_nv(df, 1000)
+    #df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
