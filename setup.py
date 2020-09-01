@@ -7,7 +7,8 @@ REQUIRED_PACKAGES = [
     'pip>=9',
     'setuptools>=26',
     'wheel>=0.29',
-    'pandas',
+    'numpy==1.18.4',
+    'pandas==0.24.2',
     'pytest',
     'coverage',
     'flake8',
@@ -21,14 +22,24 @@ REQUIRED_PACKAGES = [
     'keras-tuner',
     'colored',
     'scikit-learn>=0.23.0',
-    'matplotlib',
+    'matplotlib==3.2.1',
     'imageio',
     'Pillow',
-    'glob3']
+    'glob3',
+    'joblib',
+    'google.cloud',
+    'datetime',
+    'streamlit==0.65.2',
+    'plotly==4.6.0',
+    'scipy==1.2.2',
+    'requests==2.23.0',
+    'bs4==0.0.1',
+    'termcolor']
 
 #with open('requirements.txt') as f:
 #    content = f.readlines()
 #requirements = [x.strip() for x in content if 'git+' not in x]
+
 
 setup(name='skin_lesion_detection',
       version="1.0",
@@ -36,7 +47,6 @@ setup(name='skin_lesion_detection',
       description="Project Description",
       packages=find_packages(),
       test_suite = 'tests',
-      # include_package_data: to install data from MANIFEST.in
       include_package_data=True,
       scripts=['scripts/skin_lesion_detection-run'],
       zip_safe=False)
