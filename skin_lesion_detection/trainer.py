@@ -9,9 +9,10 @@ import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 
 from baseline_model import BaselineModel
-from transfer_learning_models import TLModels
+from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
+from joblib import dump, load
 
 import pandas as pd
 import numpy as np
@@ -36,8 +37,6 @@ class Trainer(object):
         elif self.image_size == 'resized':
           self.target_images = 'images_resized'
           self.input_shape = (75, 100, 3)
-        self.input_dim = len(X)
-
 
 
     def get_estimator(self):
@@ -95,6 +94,12 @@ class Trainer(object):
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
 
+        # convert x categorical features to strings
+        self.X['localization'] = self.X['localization'].to_string()
+        self.X['dx_type'] = self.X['dx_type'].to_string()
+        self.X['sex'] = self.X['sex'].to_string()
+        self.X['age'] = self.X['age'].astype('float64')
+
         # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
         self.X = self.pipeline.fit_transform(self.X)
@@ -115,21 +120,22 @@ class Trainer(object):
         if self.split:
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, random_state=1, test_size=0.3)
 
-        self.pixels_to_array(image_type=self.image_size)
+        self.pixels_to_array()
+        self.input_dim = self.X_met_train.shape[1]
         print("-----------STATUS UPDATE: DATA SPLIT INTO X/Y TEST/TRAIN MET/IM'-----------")
 
 
-    def pixels_to_array(self, image_type="full_size"):
+    def pixels_to_array(self):
         """
         Convert X_train and X_test into [X_met_train + X_im_train] and [X_met_test + X_im_test] respectively
         """
         self.X_met_train = self.X_train.drop(columns=['pixels_scaled']).astype('float64')
         self.X_met_test = self.X_test.drop(columns=['pixels_scaled']).astype('float64')
 
-        if image_type == "full_size":
+        if self.image_size == "full_size":
             self.X_im_train = np.array([i.reshape(450, 600, 3) for i in self.X_train['pixels_scaled'].values])
             self.X_im_test = np.array([i.reshape(450, 600, 3) for i in self.X_test['pixels_scaled'].values])
-        elif image_type == "resized":
+        elif self.image_size == "resized":
             self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['pixels_scaled'].values])
             self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
         print("-----------STATUS UPDATE: PIXEL ARRAGYS EXTRACTED'-----------")
@@ -138,6 +144,7 @@ class Trainer(object):
     #@simple_time_tracker
     def train(self, gridsearch=False, estimator='baseline_model'):
         # assign self.estimator as desired estimator and set self.model via get_estimator()
+        self.input_dim=self.X_met_train.shape[1]
         self.estimator=estimator
         self.get_estimator()
 
@@ -184,10 +191,15 @@ class Trainer(object):
         """
         Save the model into a .joblib
         """
-        joblib.dump(self.pipeline, 'model.joblib')
-        print(colored("model.joblib saved locally", "green"))
-        pass
+        joblib.dump(self.model, 'vgg_run1_model.joblib')
+        print("-------------------MODEL SAVED----------------")
 
+    def save_history(self):
+        """
+        Save the model into a .joblib
+        """
+        joblib.dump(self.history, 'vgg_run1_history.joblib')
+        print("-------------------HISTORY SAVED----------------")
 
     # ### MLFlow methods
     # @memoized_property
@@ -239,33 +251,44 @@ if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     # Get and clean data
-    df = get_data(nrows=20)
+    image_size = 'resized' # toggle between 'resized' and 'full_size'
+    df = get_data(nrows=None)
+
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    # df = balance_nv(df, 1000)
-    # df = data_augmentation(df, image_size='resized')
-    # print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
+    df = balance_nv(df, 1000)
+    df = data_augmentation(df, image_size=image_size)
+    print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
-    X = df.drop(columns=['dx', 'lesion_id', 'image_id'])
+    X = df.drop(columns=['dx', 'lesion_id', 'image_id', 'cell_type', 'cell_type_idx'])
     y = df['dx']
-    t = Trainer(X, y, image_size='resized')
+    t = Trainer(X, y, image_size=image_size)
 
     # Preprocess data: transfrom and scale
     print("############  Preprocessing data   ############")
-    t.preprocess(image_type=t.image_size)
+    t.preprocess()
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='tl_vgg')
+    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
     t.evaluate()
 
-    # Plot history
-    # plot_loss_accuracy(self.history)
+    ##Plot history
+    plot_loss_accuracy(self.history)
+
+    ## save model
+    print("############  Saving model  ############")
+    save_model()
+
+     ## save history
+    print("############  Saving history  ############")
+    save_history()
+
 
 
 
