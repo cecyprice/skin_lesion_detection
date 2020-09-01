@@ -164,7 +164,7 @@ def data_augmentation(df, image_size = 'resized'):
 
 
 if __name__ == '__main__':
-  print('cleaned dataframe')
+    print(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'dataset'))
 
 
 # ## ap = argparse.ArgumentParser()
