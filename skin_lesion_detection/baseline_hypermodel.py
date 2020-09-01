@@ -14,7 +14,7 @@ from kerastuner.tuners.randomsearch import RandomSearch
 
 from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
-from trainer import Trainer
+from SkinLesionDetection.trainer import Trainer
 
 
 
