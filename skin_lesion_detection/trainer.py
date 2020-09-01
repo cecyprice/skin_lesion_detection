@@ -13,21 +13,19 @@ from baseline_model import BaselineModel
 from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from encoders import ImageScaler
+import joblib
 
 import pandas as pd
 import numpy as np
 import warnings
 
 class Trainer(object):
-
     def __init__(self, X, y, **kwargs):
-
         self.pipeline = None
         self.kwargs = kwargs
         self.X = X
         self.y = y
         self.split = self.kwargs.get("split", True)
-
         # Image dimension attributes
         self.scaler = self.kwargs.get('scaler', 'normalization')
         self.image_size = self.kwargs.get('image_size', 'full_size')
@@ -52,25 +50,20 @@ class Trainer(object):
 
 
     def set_pipeline(self):
-
         # Define feature engineering pipeline blocks
         self.ohe = OneHotEncoder(handle_unknown='ignore')
         self.rs = RobustScaler()
         self.imsc = ImageScaler(scaler=self.scaler, image_size=self.image_size)
-
         pipe_cat_feats = make_pipeline(self.ohe)
         pipe_cont_feats = make_pipeline(self.rs)
         pipe_photo_feats = make_pipeline(self.imsc)
-
         # Define default feature engineering blocs
         feateng_blocks = [
             ('cat_feats', pipe_cat_feats, ['localization', 'dx_type', 'sex']),
             ('cont_features', pipe_cont_feats, ['age']),
             ('photo_feats', pipe_photo_feats, [self.target_images]),
         ]
-
         self.features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")
-
         self.pipeline = Pipeline(steps=[
             ('features', self.features_encoder)
             ])
@@ -93,17 +86,14 @@ class Trainer(object):
         self.num_labels = len(np.unique(self.y.values))
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
-
         # convert x categorical features to strings
         self.X['localization'] = self.X['localization'].to_string()
         self.X['dx_type'] = self.X['dx_type'].to_string()
         self.X['sex'] = self.X['sex'].to_string()
         self.X['age'] = self.X['age'].astype('float64')
-
         # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
         self.X = self.pipeline.fit_transform(self.X)
-
         # convert self.X to pd.df
         self.col_list = []
         list_arrays = self.features_encoder.transformers_[0][1].named_steps['onehotencoder'].categories_
@@ -112,9 +102,9 @@ class Trainer(object):
                 self.col_list.append(col_name)
         self.col_list.append('age_scaled')
         self.col_list.append('pixels_scaled')
-
         self.X = pd.DataFrame(self.X, columns=self.col_list)
         print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
+
 
         # create train vs test dataframes
         if self.split:
@@ -144,27 +134,24 @@ class Trainer(object):
     #@simple_time_tracker
     def train(self, gridsearch=False, estimator='baseline_model'):
         # assign self.estimator as desired estimator and set self.model via get_estimator()
-        self.input_dim=self.X_met_train.shape[1]
         self.estimator=estimator
         self.get_estimator()
-
         # define es criteria and fit model
         es = EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1, restore_best_weights=True)
         self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
-            validation_split=0.3,
-            epochs=75,
+            validation_split=0.2,
+            epochs=150,
             callbacks = [es],
-            batch_size=8,
+            batch_size=16,
             verbose = 1)
 
 
     def evaluate(self):
-        ## SEE TRAINING MODEL ACCURACY
+        ## SEE TRAINING MODEL ACCURACY
         self.train_results = self.model.evaluate(x=[self.X_met_train, self.X_im_train], y=self.y_train, verbose=1)
         print('Train Loss: {} - Train Accuracy: {}'.format(self.train_results[0], self.train_results[1]))
         # print('Train Loss: {} - Train Accuracy: {} - Train Recall: {} - Train Precision: {}'.format(self.train_met_results[0], self.train_met_results[1], train_met_results[2], train_met_results[3]))
-
-        ## TEST DATA ACCURACY
+        ## TEST DATA ACCURACY
         self.test_results = self.model.evaluate(x=[self.X_met_test, self.X_im_test], y=self.y_test, verbose=1)
         print('Test Loss: {} - Test Accuracy: {}'.format(self.test_results[0], self.test_results[1]))
         # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
@@ -204,6 +191,18 @@ class Trainer(object):
         self.model.save_weights(f"{name}.h5") ## PUT IN MODEL NAME + '.h5' HERE
 
         print("-------------------MODEL SAVED----------------")
+
+    def save_pipeline(self):
+        joblib.dump(self.pipeline, 'pipeline.joblib')
+        print("-------------------PIPELINE SAVED----------------")
+
+
+    def save_history(self):
+        """
+        Save the model into a .joblib
+        """
+        joblib.dump(self.history, 'vgg_run1_history.joblib')
+        print("-------------------HISTORY SAVED----------------")
 
 
     # ### MLFlow methods
@@ -252,7 +251,6 @@ class Trainer(object):
 
 
 if __name__ == "__main__":
-
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
     # Get and clean data
@@ -274,6 +272,9 @@ if __name__ == "__main__":
     # Preprocess data: transfrom and scale
     print("############  Preprocessing data   ############")
     t.preprocess()
+
+    # t.save_pipeline()
+    # app_model = joblib.load("pipeline.joblib")
 
     # Train model
     print("############  Training model   ############")

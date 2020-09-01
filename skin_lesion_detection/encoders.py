@@ -3,19 +3,6 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 
-class LabelEncoder():
-
-  def __init__(self, encoder):
-    self.encoder = encoder
-
-
-  def transform(self):
-    pass
-
-
-  def fit(self, X, y=None):
-    return self
-
 
 class ImageScaler(BaseEstimator, TransformerMixin):
   def __init__(self, scaler='normalization', image_size='full_size'):
