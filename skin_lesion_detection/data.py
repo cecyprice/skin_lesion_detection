@@ -16,13 +16,7 @@ def get_data(random_state=1, local=False, nrows=None):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
-
-  if local:
-    base_skin_dir = os.path.join('..','dataset')
-    imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
-                      for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
-
-    lesion_type_dict = {
+  lesion_type_dict = {
        'nv': 'Melanocytic nevi',
        'mel': 'Melanoma',
        'bkl': 'Benign keratosis-like lesions ',
@@ -30,7 +24,12 @@ def get_data(random_state=1, local=False, nrows=None):
        'akiec': 'Actinic keratoses',
        'vasc': 'Vascular lesions',
        'df': 'Dermatofibroma'
-    }
+  }
+
+  if local:
+    base_skin_dir = os.path.join('..','dataset')
+    imageid_path_dict = {os.path.splitext(os.path.basename(x))[0]: x
+                      for x in glob(os.path.join(base_skin_dir, '*', '*.jpg'))}
 
     df['path'] = df['image_id'].map(imageid_path_dict.get)
     df['cell_type'] = df['dx'].map(lesion_type_dict.get)
@@ -53,6 +52,8 @@ def get_data(random_state=1, local=False, nrows=None):
     csv_name = blob.name.split("/")[1]
     blob.download_to_filename(csv_name)
     df = pd.read_csv(csv_name, nrows=nrows)
+    df['cell_type'] = df['dx'].map(lesion_type_dict.get)
+    df['cell_type_idx'] = pd.Categorical(df['cell_type']).codes
 
     dict_img = {'image_id': [], 'images': []}
     blobs=list(bucket.list_blobs())
