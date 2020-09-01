@@ -7,6 +7,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
+from keras.models import model_from_json
 
 from baseline_model import BaselineModel
 from tl_models import TLModels
@@ -136,10 +137,10 @@ class Trainer(object):
         self.estimator=estimator
         self.get_estimator()
         # define es criteria and fit model
-        es = EarlyStopping(monitor='val_loss', mode='min', patience=25, verbose=1, restore_best_weights=True)
+        es = EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1, restore_best_weights=True)
         self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
             validation_split=0.2,
-            epochs=200,
+            epochs=150,
             callbacks = [es],
             batch_size=16,
             verbose = 1)
@@ -154,8 +155,6 @@ class Trainer(object):
         self.test_results = self.model.evaluate(x=[self.X_met_test, self.X_im_test], y=self.y_test, verbose=1)
         print('Test Loss: {} - Test Accuracy: {}'.format(self.test_results[0], self.test_results[1]))
         # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
-
-
 
     def plot_loss_accuracy(history):
 
@@ -173,14 +172,25 @@ class Trainer(object):
         plt.xlabel("Epochs")
         plt.legend(['Train', 'val_test'], loc='best')
 
+    # def save_history(self):
+    #     """
+    #     Save the model into a .joblib
+    #     """
+    #     joblib_file = 'vgg_history.joblib'
+    #     joblib.dump(self.history, file)
+    #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-        """
-        Save the model into a .joblib
-        """
-        joblib.dump(self.model, 'vgg_run1_model.joblib')
-        print("-------------------MODEL SAVED----------------")
+        name = "Densenet_test" ### NAME YOUR TEST RUN!!!
+        ## serialize model to json
+        model_json = self.model.to_json()
+        with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
+            json_file.write(model_json)
 
+        # serialize weights to HDF5
+        self.model.save_weights(f"{name}.h5") ## PUT IN MODEL NAME + '.h5' HERE
+
+        print("-------------------MODEL SAVED----------------")
 
     def save_pipeline(self):
         joblib.dump(self.pipeline, 'pipeline.joblib')
@@ -193,6 +203,7 @@ class Trainer(object):
         """
         joblib.dump(self.history, 'vgg_run1_history.joblib')
         print("-------------------HISTORY SAVED----------------")
+
 
     # ### MLFlow methods
     # @memoized_property
@@ -267,25 +278,15 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet
+    t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
     t.evaluate()
 
-    ##Plot history
-    plot_loss_accuracy(self.history)
-
-    ## save model
+    # ## save model
     print("############  Saving model  ############")
-    save_model()
-
-     ## save history
-    print("############  Saving history  ############")
-    save_history()
-
-
-
+    t.save_model()
 
 
 
