@@ -16,7 +16,8 @@ class TLModels():
         Create Multi-Layer Perceptron as left_hand fork of mixed neural network for numeric and categorical explanatory variables
         """
         model = Sequential()
-        model.add(Dense(8, input_dim=input_dim, activation="relu"))
+        model.add(Dense(16, input_dim=input_dim, activation="relu"))
+        model.add(Dense(8, activation="relu"))
         model.add(Dense(4, activation="relu"))
         return model
 
@@ -48,13 +49,13 @@ class TLModels():
 
         # Make pre-trained layers non iterable and add final layers
         for layer in model.layers:
-            layer.iterable = False
             layer.trainable = False
 
         inp = Input(shape=input_shape)
         base_output = model(inp)
         x = Flatten()(base_output)
-        x = Dense(64, activation='relu')(x)
+        x = Dense(126, activation='relu')(x)
+        x = Dense(32, activation='relu')(x)
         x = Dense(4, activation='relu')(x)
 
         # construct the CNN and return model
@@ -81,7 +82,7 @@ class TLModels():
         model = Model(inputs=[mlp.input, cnn.input], outputs=x)
 
         # compile the model using BCE as loss
-        opt = Adam(lr=1e-3, decay=1e-3 / 200)
+        opt = Adam(lr=1e-4, decay=1e-3 / 200)
         model.compile(loss="categorical_crossentropy",
           optimizer=opt,
           metrics=['accuracy'])

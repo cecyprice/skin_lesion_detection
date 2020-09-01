@@ -12,6 +12,7 @@ from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.applications import densenet
 from tensorflow.keras.applications.resnet import ResNet50
 from tensorflow.keras.layers import Input, concatenate, BatchNormalization, Dense, Dropout, Activation, Flatten, Embedding, Conv1D, Conv2D, MaxPooling2D, MaxPool1D
+from tensorflow.python.framework.ops import disable_eager_execution
 import kerastuner
 from kerastuner.tuners import Hyperband
 from kerastuner import HyperModel
@@ -21,7 +22,6 @@ from kerastuner.tuners.randomsearch import RandomSearch
 from tl_models import TLModels
 from data import get_data, clean_df, balance_nv, data_augmentation
 from trainer import Trainer
-
 
 
 class TLHyperModel(HyperModel):
@@ -39,9 +39,7 @@ class TLHyperModel(HyperModel):
   def build(self, hp):
     # mlp fork
     self.mlp_fork = Sequential()
-    self.mlp_fork.add(Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
-                        input_dim=self.input_dim,
-                        activation="relu"))
+    self.mlp_fork.add(Dense(8, input_dim=self.input_dim, activation="relu"))
     self.mlp_fork.add(Dense(4, activation="relu"))
 
     # cnn fork
@@ -67,19 +65,18 @@ class TLHyperModel(HyperModel):
 
     base_output = model(inp)
     x = Flatten()(base_output)
-    x = Dense(units=hp.Int('units', min_value=8, max_value=512, step=32, default=128),
-            activation=hp.Choice('dense_activation', values=['relu', 'tanh', 'sigmoid'], default='relu'))(x)
+    x = Dense(64, activation='relu')(x)
     x = Dense(4, activation='relu')(x)
 
     self.cnn_fork = Model(inp, x)
 
     # combine MLP and CNN forks to create merged predictor
-    combinedInput = concatenate([self.mlp_fork.output, self.cnn_fork.output])
-    out = Dense(4, activation="relu")(combinedInput)
+    self.combinedInput = concatenate([self.mlp_fork.output, self.cnn_fork.output])
+    out = Dense(4, activation="relu")(self.combinedInput)
     out = Dense(self.num_labels, activation="softmax")(out)
     self.merged_model = Model(inputs=[self.mlp_fork.input, self.cnn_fork.input], outputs=out)
 
-    self.merged_model.compile(optimizer=Adam(hp.Float('learning_rate', min_value=1e-5, max_value=1e-2, sampling='LOG', default=1e-3)),
+    self.merged_model.compile(optimizer=Adam(lr=1e-3, decay=1e-3 / 200),
                         loss="categorical_crossentropy",
                         metrics=['accuracy'])
 
@@ -89,9 +86,10 @@ class TLHyperModel(HyperModel):
 if __name__ == "__main__":
 
     warnings.simplefilter(action='ignore', category=FutureWarning)
+    disable_eager_execution()
 
     # Get and clean data
-    image_size = 'full_size' # toggle between 'resized' and 'full_size'
+    image_size = 'resized' # toggle between 'resized' and 'full_size'
     df = get_data(nrows=100)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
@@ -108,11 +106,6 @@ if __name__ == "__main__":
     # Preprocess data: transfrom and scale
     print(colored("############  Preprocessing data   ############", 'blue'))
     t.preprocess()
-    print(t.input_dim)
-    print(t.input_shape)
-    print(X.shape)
-    print(t.X_met_train.shape)
-    print(t.X_im_train.shape)
 
     # Seach hyperparamaters for optimal values
     print(colored("############  Tuning hyperparamaters   ############", 'blue'))
@@ -131,7 +124,7 @@ if __name__ == "__main__":
                 verbose=1,
                 callbacks=[hypermodel.es])
 
-    #import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
     best_model = tuner.get_best_models(num_models=1)[0]
 
     print(colored(f"Best Model: {best_model}", 'green'))
