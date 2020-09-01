@@ -16,13 +16,9 @@ REQUIRED_PACKAGES = [
     'keras-tuner',
     'sklearn',
     'imageio',
-    'PIL',
     'imblearn',
-    'warnings',
-    'json',
     'joblib',
     'google.cloud',
-    'google.oauth2'
     'datetime'
     ]
 
