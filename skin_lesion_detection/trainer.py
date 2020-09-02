@@ -10,14 +10,11 @@ from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import model_from_json
 
 
-from baseline_model import BaselineModel
-from tl_models import TLModels
-from data import get_data, clean_df, balance_nv, data_augmentation
-from encoders import ImageScaler
-from baseline_model import BaselineModel
-from tl_models import TLModels
-from data import get_data, clean_df, balance_nv, data_augmentation
-from encoders import ImageScaler
+from skin_lesion_detection.baseline_model import BaselineModel
+from skin_lesion_detection.tl_models import TLModels
+from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
+from skin_lesion_detection.encoders import ImageScaler
+from skin_lesion_detection.gcp import storage_upload
 import joblib
 
 
@@ -187,7 +184,7 @@ class Trainer(object):
     #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-        name = "baseline_model_test" ### NAME YOUR TEST RUN!!!
+        name = "resnet_test" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
@@ -195,6 +192,8 @@ class Trainer(object):
 
         # serialize weights to HDF5
         self.model.save_weights(f"{name}.h5") ## PUT IN MODEL NAME + '.h5' HERE
+        storage_upload(f'{name}.json')
+        storage_upload(f"{name}.h5")
 
         print("-------------------MODEL SAVED----------------")
 
@@ -281,7 +280,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='baseline_model') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
+    t.train(estimator='tl_resnet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")

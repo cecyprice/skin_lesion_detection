@@ -17,16 +17,16 @@ def get_credentials():
     return creds_gcp
 
 
-def storage_upload(model_version=MODEL_VERSION, bucket=BUCKET_NAME, rm=False):
+def storage_upload(name, model_version=MODEL_VERSION, bucket=BUCKET_NAME, rm=False):
     client = storage.Client().bucket(bucket)
 
     storage_location = 'models/{}/versions/{}/{}'.format(
         MODEL_NAME,
         model_version,
-        'model.joblib')
+        name)
     blob = client.blob(storage_location)
-    blob.upload_from_filename('model.joblib')
-    print(colored("=> model.joblib uploaded to bucket {} inside {}".format(BUCKET_NAME, storage_location),
+    blob.upload_from_filename(name)
+    print(colored("=> model uploaded to bucket {} inside {}".format(BUCKET_NAME, storage_location),
                   "green"))
     if rm:
         os.remove('model.joblib')
