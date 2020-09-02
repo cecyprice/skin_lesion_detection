@@ -34,7 +34,8 @@ REQUIRED_PACKAGES = [
     'scipy==1.2.2',
     'requests==2.23.0',
     'bs4==0.0.1',
-    'termcolor']
+    'termcolor',
+    'h5py']
 
 #with open('requirements.txt') as f:
 #    content = f.readlines()

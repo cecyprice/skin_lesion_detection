@@ -2,10 +2,15 @@ import streamlit as st
 import pickle
 import numpy as np
 import pandas as pd
-from scipy.misc import imread
+import scipy
+#from scipy.misc import imread
 # from skin_lesion_detection.encoders import ImageScaler
 import joblib
 from skin_lesion_detection.predict import Preprocessor
+from skin_lesion_detection.gcp import download_model
+from PIL import Image
+from keras.models import model_from_json
+import h5py
 
 
 st.markdown("""# Skin Lesion Detection Engine""")
@@ -14,7 +19,9 @@ st.markdown("""# Skin Lesion Detection Engine""")
 st.markdown("""## Step 1: Enter personal details""")
 
 sex = st.selectbox("👇 Select Sex", ["Male", "Female"])
-age = st.text_input("👇 Enter Age", "-")
+age = st.text_input("👇 Enter Age", "30")
+print(type(age))
+print(age)
 les_loc = st.selectbox("👇 Select Lesion Location", ["Trunk", "Back", "Abdomen", "Upper extremity", "Lower extremity", "Foot", "Chest", "Face", "Neck", "Genitals", "Hand", "Scalp", "Ear", "Acral", "Other/NA"])
 tech_val_field = st.selectbox("👇 Select Technical Validation Field", ["Histopathology", "Confocal", "Follow-up", "Consensus"])
 
@@ -22,11 +29,12 @@ tech_val_field = st.selectbox("👇 Select Technical Validation Field", ["Histop
 # Step 2: photo upload
 st.markdown("""## Step 2: Upload photograph
 ### Upload .jpeg image of your lesion """)
-uploaded_image = st.file_uploader("Select file")
+#uploaded_image = st.file_uploader("Select file")
+uploaded_image = "C:/Users/John Dahler/code/cecyprice/skin_lesion_detection/dataset/ISIC_0024306.jpg"
 
 if uploaded_image is not None:
     # Storing the image into a NumPy array and plotting it
-    image = imread(uploaded_image)
+    image = Image.open(uploaded_image)
     st.image(image, use_column_width = True)
 
 # reassign to match data categories
@@ -102,3 +110,15 @@ st.write(X_im_test)
 
 
 # predict on gcp saved model (or local saved model)
+model_name = 'baseline_model_test'
+download_model(name=model_name, extension='json')
+download_model(name=model_name, extension='h5')
+
+# load json and create model
+json_file = open(f"{model_name}.json", 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+loaded_model = model_from_json(loaded_model_json)
+# load weights into new model
+loaded_model.load_weights(f"{model_name}.h5")
+print("Loaded model from disk")

@@ -7,6 +7,9 @@ from google.oauth2 import service_account
 from termcolor import colored
 from skin_lesion_detection.params import BUCKET_NAME, PROJECT_ID, MODEL_NAME, MODEL_VERSION
 
+from keras.models import model_from_json
+import h5py
+
 
 def get_credentials():
     credentials_raw = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
@@ -32,18 +35,20 @@ def storage_upload(name, model_version=MODEL_VERSION, bucket=BUCKET_NAME, rm=Fal
         os.remove('model.joblib')
 
 
-def download_model(model_version=MODEL_VERSION, bucket=BUCKET_NAME, rm=True):
+def download_model(name, extension, model_version=MODEL_VERSION, bucket=BUCKET_NAME, rm=True):
     creds = get_credentials()
     client = storage.Client(credentials=creds, project=PROJECT_ID).bucket(bucket)
 
-    storage_location = 'models/{}/versions/{}/{}'.format(
-        MODEL_NAME,
-        model_version,
-        'model.joblib')
+    #storage_location = '/models/{}/versions/{}/{}'.format(
+    #    MODEL_NAME,
+    #    model_version,
+    #    f"{name}.{extension}")
+    #storage_location = '{}'.format(f"{name}.{extension}")
+    print(storage_location)
     blob = client.blob(storage_location)
-    blob.download_to_filename('model.joblib')
+    blob.download_to_filename(f'{name}.{extension}')
+    print(name)
     print(f"=> pipeline downloaded from storage")
-    model = joblib.load('model.joblib')
-    if rm:
-        os.remove('model.joblib')
-    return model
+    #model = joblib.load(name)
+    #if rm:
+    #    os.remove('model.joblib')
