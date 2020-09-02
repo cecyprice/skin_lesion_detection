@@ -47,3 +47,22 @@ def download_model(model_version=MODEL_VERSION, bucket=BUCKET_NAME, rm=True):
     if rm:
         os.remove('model.joblib')
     return model
+
+def predict_gcp(project=PROJECT_ID, model=MODEL_NAME, version=MODEL_VERSION, instances):
+        '''Call model for prediction'''
+
+    service = googleapiclient.discovery.build('skin_lesion_detection', 'Pipeline') # google api endpoint /ml/v1
+
+    name = 'projects/{}/models/{}/versions/{}'.format(project, model, version)
+
+    response = service.projects().predict(
+        name=name,
+        body={'instances': instances}
+    ).execute()
+
+    if 'error' in response:
+        raise RuntimeError(response['error'])
+
+    results = response['predictions']
+
+    return np.argmax(results[0]['dense_1'])

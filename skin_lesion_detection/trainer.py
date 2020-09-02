@@ -266,7 +266,7 @@ if __name__ == "__main__":
     print("-----------LOADING DATASET-----------")
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=100)
+    df = get_data(nrows=None)
     print(df)
     print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
