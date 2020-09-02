@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 
+import pickle
+# import encoders
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import model_from_json
@@ -15,9 +17,8 @@ from skin_lesion_detection.tl_models import TLModels
 from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
 from skin_lesion_detection.encoders import ImageScaler
 from skin_lesion_detection.gcp import storage_upload
+
 import joblib
-
-
 import pandas as pd
 import numpy as np
 import warnings
@@ -96,7 +97,9 @@ class Trainer(object):
         self.X['age'] = self.X['age'].astype('float64')
         # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
-        self.X = self.pipeline.fit_transform(self.X)
+        self.pipeline.fit(self.X)
+        self.X = self.pipeline.transform(self.X)
+        self.fitted_pipeline = self.pipeline
         # convert self.X to pd.df
         self.col_list = []
         list_arrays = self.features_encoder.transformers_[0][1].named_steps['onehotencoder'].categories_
@@ -184,7 +187,8 @@ class Trainer(object):
     #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-        name = "resnet_test" ### NAME YOUR TEST RUN!!!
+
+        name = "tl_vgg16" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
@@ -197,8 +201,9 @@ class Trainer(object):
 
         print("-------------------MODEL SAVED----------------")
 
+
     def save_pipeline(self):
-        joblib.dump(self.pipeline, 'pipeline.joblib')
+        joblib.dump(self.pipeline, 'pipeline_1.joblib')
         print("-------------------PIPELINE SAVED----------------")
 
 
@@ -258,16 +263,17 @@ class Trainer(object):
 if __name__ == "__main__":
     warnings.simplefilter(action='ignore', category=FutureWarning)
 
+    print("-----------LOADING DATASET-----------")
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=None)
+    df = get_data(nrows=100)
     print(df)
-    print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
+    print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
-    print("-----------STATUS UPDATE: DATA CLEANED'-----------")
+    print("-----------STATUS UPDATE: DATA CLEANED-----------")
     df = balance_nv(df, 1000)
     df = data_augmentation(df, image_size=image_size)
-    print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
+    print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED-----------")
 
     # Assign X and y and instanciate Trainer Class
     X = df.drop(columns=['dx', 'lesion_id', 'image_id', 'cell_type', 'cell_type_idx'])
@@ -278,21 +284,26 @@ if __name__ == "__main__":
     print("############  Preprocessing data   ############")
     t.preprocess()
 
+    print("############  Saving pipeline  ############")
+    pickle.dump(t.fitted_pipeline, open('pipeline_2_fp.sav', 'wb'))
+    joblib.dump(t.fitted_pipeline, 'pipeline_3_fp.joblib')
+    print("############  PIPELINE SAVED  ############")
+
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='tl_resnet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
-    # Evaluate model on X_test/y_preds vs y_test
-    print("############  Evaluating model   ############")
-    t.evaluate()
+    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
-    # ## save model
-    print("############  Saving model  ############")
-    t.save_model()
+
+
+    # # Evaluate model on X_test/y_preds vs y_test
+    # print("############  Evaluating model   ############")
+    # t.evaluate()
+
+    # # ## save model
+    # print("############  Saving model  ############")
+    # t.save_model()
 
     # print("############  Saving pipeline  ############")
     # t.save_pipeline()
     # app_model = joblib.load("pipeline.joblib")
-
-
-

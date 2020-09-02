@@ -1,15 +1,17 @@
 import streamlit as st
+import pickle
 import numpy as np
 import pandas as pd
-
 from scipy.misc import imread
-from skin_lesion_detection.encoders import ImageScaler
+# from skin_lesion_detection.encoders import ImageScaler
 import joblib
 from skin_lesion_detection.predict import Preprocessor
-import skin_lesion_detection.encoders
-# sfrom encoders import ImageScaler
+
+from skin_lesion_detection import encoders as encoders
+from skin_lesion_detection import trainer
 
 
+#
 
 st.markdown("""# Skin Lesion Detection Engine""")
 
@@ -57,15 +59,29 @@ image_resized_list = [i for i in resized_reshaped]
 df['images'] = [image_list]
 df['images_resized'] = [image_resized_list]
 
+
+
 st.dataframe(df)
 
 # apply pipeline transformations to df
-preprocessor = Preprocessor().predict(df)
+
+
+# preprocessor = Preprocessor().predict(df)
+model = joblib.load(open("skin_lesion_detection/pipeline_1.joblib", 'rb'))
 
 # preproc = Preprocessor.from_path()
 # df_preproc = preproc.transform(df)
 
 # st.write(df_preproc)
+name = 'vgg_test'
+json_file = open(f'{name}', 'r')
+loaded_model_json = json_file.read()
+json_file.close()
+loaded_model = model_from_json(loaded_model_json)
+model = loaded_model.load_weights(f'{name}.h5')
+
+model.predict(df)
+
 
 
 # split into X_met and X_im

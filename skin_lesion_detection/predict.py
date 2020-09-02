@@ -2,9 +2,10 @@ import os
 import traceback
 import pandas as pd
 import joblib
-
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
+import ipdb
 from skin_lesion_detection.encoders import ImageScaler
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
+
 
 
 
@@ -17,6 +18,7 @@ class Preprocessor(object):
         return cls(model)
 
     def __init__(self):
+        # ipdb.set_trace()
         self.pipeline = Preprocessor.from_path()
 
     def predict(self, df):
