@@ -4,9 +4,8 @@ import numpy as np
 import pandas as pd
 from scipy.misc import imread
 from keras.models import load_model
-# from skin_lesion_detection.encoders import ImageScaler
 import joblib
-from skin_lesion_detection.predict import Preprocessor
+
 
 # disable warning
 st.set_option('deprecation.showfileUploaderEncoding', False)
@@ -88,7 +87,7 @@ for i in sex_list:
     if str(sex).lower() == i:
         df.set_value(0, i, float(1))
 
-st.dataframe(df)
+# st.dataframe(df) to see df
 
 # resize image and scale using ImageScaler
 image = image
@@ -107,11 +106,15 @@ st.markdown("""## Step 3: Get prediction""")
 prediction = st.button("Predict")
 
 if prediction:
-  model = load_model('skin_lesion_detection/tl_densenet_test.h5')
-  results = model.predict(x=[X_met_test, X_im_test])
-  st.markdown(f"""### Top 3 most likely diagnoses:
-  #### 1) {results}""")
+  model = load_model('skin_lesion_detection/test_with_matt.h5')
+  val_loss, val_cat_acc, val_top_3_acc = model.predict(x=[X_met_test, X_im_test])
+
+  st.markdown(f"""### Top 3 most likely diagnoses:""")
+  #### 1) {}
   #### 2) {}
-  #### 3) {}""")
+  #### 3) {}
+  ##### accuracy = {val_top_3_acc}""")
 
 # diplay top 3 most likely predictions with accuracy
+
+

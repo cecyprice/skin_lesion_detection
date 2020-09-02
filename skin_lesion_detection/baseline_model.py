@@ -76,11 +76,15 @@ class BaselineModel():
         # yield final model integrating categorical/numerical data and images into single diagnostic prediction
         model = Model(inputs=[mlp.input, cnn.input], outputs=x)
 
+        # top3 accuracy
+        top3_accuracy = functools.partial(top_k_categorical_accuracy, k=3)
+        top3_accuracy.__name__ = 'top3_acc'
+
         # compile the model using BCE as loss
         opt = Adam(lr=1e-3, decay=1e-3 / 200)
         model.compile(loss="categorical_crossentropy",
           optimizer=opt,
-          metrics=['accuracy'])
+          metrics=[categorical_accuracy, top3_accuracy])
 
         #NB have removed  'precision', 'f1'
 

@@ -97,18 +97,7 @@ class TLModels():
         return model
 
 
-    # def fit_model(model):
-    #     '''
-    #     Fit the model using early stopping criteria
-    #     '''
-    #     es = EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1, restore_best_weights=True)
 
-    #     history = model.fit(X_train, y_train,
-    #                       validation_split=0.2,
-    #                       epochs=100,
-    #                       batch_size=16,
-    #                       callbacks=[es])
-        # return history
 
 
 
