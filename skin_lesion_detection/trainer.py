@@ -94,9 +94,9 @@ class Trainer(object):
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
         # convert x categorical features to strings
-        self.X['localization'] = self.X['localization'].to_string()
-        self.X['dx_type'] = self.X['dx_type'].to_string()
-        self.X['sex'] = self.X['sex'].to_string()
+        self.X['localization'] = self.X['localization']
+        self.X['dx_type'] = self.X['dx_type']
+        self.X['sex'] = self.X['sex']
         self.X['age'] = self.X['age'].astype('float64')
         # scale/encode X features (metadata + pixel data) via pipeline
         self.set_pipeline()
@@ -111,7 +111,6 @@ class Trainer(object):
                 self.col_list.append(col_name)
         self.col_list.append('age_scaled')
         self.col_list.append('pixels_scaled')
-        import ipdb; ipdb.set_trace()
         self.X = pd.DataFrame(self.X, columns=self.col_list)
         print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
 
@@ -122,6 +121,12 @@ class Trainer(object):
 
         self.pixels_to_array()
         self.input_dim = self.X_met_train.shape[1]
+
+        print(list_arrays)
+        # print(self.input_dim)
+        # print(self.X_met_train.shape)
+        # print(self.X_met_train.columns)
+        # print(self.X.columns)
         print("-----------STATUS UPDATE: DATA SPLIT INTO X/Y TEST/TRAIN MET/IM'-----------")
 
 
@@ -138,6 +143,7 @@ class Trainer(object):
         elif self.image_size == "resized":
             self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['pixels_scaled'].values])
             self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
+
         print("-----------STATUS UPDATE: PIXEL ARRAGYS EXTRACTED'-----------")
 
 
@@ -150,7 +156,7 @@ class Trainer(object):
         es = EarlyStopping(monitor='val_loss', mode='min', patience=5, verbose=1, restore_best_weights=True)
         self.history = self.model.fit(x=[self.X_met_train, self.X_im_train], y=self.y_train,
             validation_split=0.2,
-            epochs=150,
+            epochs=5,
             callbacks = [es],
             batch_size=16,
             verbose = 1)
@@ -192,7 +198,7 @@ class Trainer(object):
 
     def save_model(self):
 
-        name = "tl_vgg16" ### NAME YOUR TEST RUN!!!
+        name = "tl_gvv_testrun" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
@@ -270,14 +276,14 @@ if __name__ == "__main__":
     print("-----------LOADING DATASET-----------")
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=None)
+    df = get_data(nrows=100)
     print(df)
     print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
 
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    df = balance_nv(df, 1000)
-    df = data_augmentation(df, image_size=image_size)
+    #df = balance_nv(df, 1000)
+    #df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
@@ -289,15 +295,10 @@ if __name__ == "__main__":
     print("############  Preprocessing data   ############")
     t.preprocess()
 
-    # print("############  Saving pipeline  ############")
-    # pickle.dump(t.fitted_pipeline, open('pipeline_2_fp.sav', 'wb'))
-    # joblib.dump(t.fitted_pipeline, 'pipeline_3_fp.joblib')
-    # print("############  PIPELINE SAVED  ############")
-
     # Train model
     print("############  Training model   ############")
 
-    t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
+    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet', 'tlvgg16_awesome'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
@@ -307,7 +308,7 @@ if __name__ == "__main__":
     print("############  Saving model  ############")
     t.save_model()
 
-    # print("############  Saving pipeline  ############")
-    # t.save_pipeline()
-    # app_model = joblib.load("pipeline.joblib")
+    print("############  Saving pipeline  ############")
+    t.save_pipeline()
+    app_model = joblib.load("pipeline.joblib")
 
