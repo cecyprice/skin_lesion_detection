@@ -111,7 +111,6 @@ class Trainer(object):
                 self.col_list.append(col_name)
         self.col_list.append('age_scaled')
         self.col_list.append('pixels_scaled')
-        import ipdb; ipdb.set_trace()
         self.X = pd.DataFrame(self.X, columns=self.col_list)
         print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
 
@@ -288,11 +287,6 @@ if __name__ == "__main__":
     # Preprocess data: transfrom and scale
     print("############  Preprocessing data   ############")
     t.preprocess()
-
-    # print("############  Saving pipeline  ############")
-    # pickle.dump(t.fitted_pipeline, open('pipeline_2_fp.sav', 'wb'))
-    # joblib.dump(t.fitted_pipeline, 'pipeline_3_fp.joblib')
-    # print("############  PIPELINE SAVED  ############")
 
     # Train model
     print("############  Training model   ############")

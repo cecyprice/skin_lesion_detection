@@ -106,7 +106,7 @@ st.markdown("""## Step 3: Get prediction""")
 prediction = st.button("Predict")
 
 if prediction:
-  # load model
+  path_model = "tl_vgg_awesome.joblib"
   # apply model here eg model.predict(x=[X_met_test, X_im_test] etc...)
   st.markdown("""### Top 3 most likely diagnoses:
   #### 1) {}
