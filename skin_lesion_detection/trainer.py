@@ -6,7 +6,6 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
 
 import pickle
-# import encoders
 import tensorflow.keras
 from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import model_from_json
@@ -15,11 +14,11 @@ from keras.models import model_from_json
 from skin_lesion_detection.baseline_model import BaselineModel
 from skin_lesion_detection.tl_models import TLModels
 from skin_lesion_detection.data import get_data, clean_df, balance_nv, data_augmentation
-# from encoders import ImageScaler
-# from baseline_model import BaselineModel
-# from tl_models import TLModels
-# from data import get_data, clean_df, balance_nv, data_augmentation
-# from encoders import ImageScaler
+from encoders import ImageScaler
+from baseline_model import BaselineModel
+from tl_models import TLModels
+from data import get_data, clean_df, balance_nv, data_augmentation
+from encoders import ImageScaler
 import joblib
 import pandas as pd
 import numpy as np
@@ -110,6 +109,7 @@ class Trainer(object):
                 self.col_list.append(col_name)
         self.col_list.append('age_scaled')
         self.col_list.append('pixels_scaled')
+        import ipdb; ipdb.set_trace()
         self.X = pd.DataFrame(self.X, columns=self.col_list)
         print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
 
@@ -264,13 +264,13 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=100)
+    df = get_data(nrows=None)
     print(df)
     print("-----------STATUS UPDATE: DATA IMPORTED'-----------")
     df = clean_df(df)
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    # df = balance_nv(df, 1000)
-    # df = data_augmentation(df, image_size=image_size)
+    df = balance_nv(df, 1000)
+    df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
@@ -282,27 +282,27 @@ if __name__ == "__main__":
     print("############  Preprocessing data   ############")
     t.preprocess()
 
-    print("############  Saving pipeline  ############")
-    pickle.dump(t.fitted_pipeline, open('pipeline_2_fp.sav', 'wb'))
-    joblib.dump(t.fitted_pipeline, 'pipeline_3_fp.joblib')
-    print("############  PIPELINE SAVED  ############")
+    # print("############  Saving pipeline  ############")
+    # pickle.dump(t.fitted_pipeline, open('pipeline_2_fp.sav', 'wb'))
+    # joblib.dump(t.fitted_pipeline, 'pipeline_3_fp.joblib')
+    # print("############  PIPELINE SAVED  ############")
 
-    # # Train model
-    # print("############  Training model   ############")
-    # t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
+    # Train model
+    print("############  Training model   ############")
+    t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
-    # # Evaluate model on X_test/y_preds vs y_test
-    # print("############  Evaluating model   ############")
-    # t.evaluate()
+    # Evaluate model on X_test/y_preds vs y_test
+    print("############  Evaluating model   ############")
+    t.evaluate()
 
-    # # ## save model
-    # print("############  Saving model  ############")
-    # t.save_model()
+    # ## save model
+    print("############  Saving model  ############")
+    t.save_model()
 
     # print("############  Saving pipeline  ############")
     # t.save_pipeline()
     # app_model = joblib.load("pipeline.joblib")
-    # test trace
+
 
 
 
