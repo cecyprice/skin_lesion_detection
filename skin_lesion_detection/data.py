@@ -10,9 +10,10 @@ import imageio
 from PIL import Image
 
 from skin_lesion_detection.params import BUCKET_NAME, BUCKET_TRAIN_DATA_PATH, PROJECT_ID
-# from google.cloud import storage
 
-def get_data(random_state=1, local=True, nrows=None):
+from google.cloud import storage
+
+def get_data(random_state=1, local=False, nrows=None):
   '''
   Import and merge dataframes, pass n_rows arg to pd.read_csv to get a sample dataset
   '''
@@ -57,7 +58,7 @@ def get_data(random_state=1, local=True, nrows=None):
     df['cell_type'] = df['dx'].map(lesion_type_dict.get)
     df['cell_type_idx'] = pd.Categorical(df['cell_type']).codes
 
-    dict_img = {'image_id': [], 'images': []}
+    dict_img = {'image_id': [], 'images': [], 'images_resized': []}
     blobs=list(bucket.list_blobs())
 
     for blob in blobs:
@@ -67,9 +68,11 @@ def get_data(random_state=1, local=True, nrows=None):
         blob_0 = bucket.blob(blob_name)
         blob_0.download_to_filename(img_name)
         img_0 = np.asarray(Image.open(img_name))
+        img_resized = np.asarray(Image.open(img_name).resize((75,100)))
         id = img_name.split(".")[0]
         dict_img['image_id'].append(id)
         dict_img['images'].append(img_0.reshape(810000))
+        dict_img['images_resized'].append(img_resized.reshape(22500))
 
     df2 = pd.DataFrame.from_dict(dict_img)
     df3 = df2.merge(df, how='left', on='image_id')
@@ -201,7 +204,7 @@ if __name__ == '__main__':
 
   print('cleaned dataframe')
   get_data()
-  print(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'dataset'))
+  #print(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'dataset'))
 
 
 
