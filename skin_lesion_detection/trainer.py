@@ -76,13 +76,6 @@ class Trainer(object):
             ])
 
 
-    def add_grid_search(self):
-        """"
-        Apply Gridsearch on self.params defined in get_estimator - using RegressionHyperModel?
-        """
-        pass
-
-
     #@simple_time_tracker
     def preprocess(self, gridsearch=False, image_type="full_size"):
         """
@@ -93,16 +86,23 @@ class Trainer(object):
         self.num_labels = len(np.unique(self.y.values))
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
-        # convert x categorical features to strings
-        self.X['localization'] = self.X['localization']
-        self.X['dx_type'] = self.X['dx_type']
-        self.X['sex'] = self.X['sex']
-        self.X['age'] = self.X['age'].astype('float64')
+
+        # self.X['age'] = self.X['age'].astype('float64')
         # scale/encode X features (metadata + pixel data) via pipeline
-        self.set_pipeline()
-        self.pipeline.fit(self.X)
-        self.X = self.pipeline.transform(self.X)
-        self.fitted_pipeline = self.pipeline
+        self.rs = RobustScaler()
+        self.imsc = ImageScaler(scaler=self.scaler, image_size=self.image_size)
+
+        import ipdb; ipdb.set_trace()
+        self.X.localization = ohe.fit_transform(self.X.localization.values).toarray()
+        self.X.sex = ohe.fit_transform(self.X.sex).toarray()
+        self.X.dx_type = ohe.fit_transform(self.X.dx_type).toarray()
+        self.X.age = rs.fit_transform(self.X.age).toarray()
+        X[self.target_images] = imsc.fit_transform(X[self.target_images]).toarray()
+
+        # self.set_pipeline()
+        # self.pipeline.fit(self.X)
+        # self.X = self.pipeline.transform(self.X)
+        # self.fitted_pipeline = self.pipeline
         # convert self.X to pd.df
         self.col_list = []
         list_arrays = self.features_encoder.transformers_[0][1].named_steps['onehotencoder'].categories_
@@ -121,12 +121,7 @@ class Trainer(object):
 
         self.pixels_to_array()
         self.input_dim = self.X_met_train.shape[1]
-
         print(list_arrays)
-        # print(self.input_dim)
-        # print(self.X_met_train.shape)
-        # print(self.X_met_train.columns)
-        # print(self.X.columns)
         print("-----------STATUS UPDATE: DATA SPLIT INTO X/Y TEST/TRAIN MET/IM'-----------")
 
 
@@ -172,8 +167,8 @@ class Trainer(object):
         print('Test Loss: {} - Test Accuracy: {}'.format(self.test_results[0], self.test_results[1]))
         # print('Test Loss: {} - Test Accuracy: {} - Test Recall: {} - Test Precision: {}'.format(test_met_results[0], test_met_results[1], test_met_results[2], test_met_results[3]))
 
-    def plot_loss_accuracy(history):
 
+    def plot_loss_accuracy(history):
         fig, axs = plt.subplots(2)
 
         axs[0].plot(history.history['loss'])
@@ -196,24 +191,25 @@ class Trainer(object):
     #     joblib.dump(self.history, file)
     #     print("-------------------HISTORY SAVED----------------")
 
+
     def save_model(self):
 
-        name = "tl_gvv_testrun" ### NAME YOUR TEST RUN!!!
+        name = "baseline_model" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
             json_file.write(model_json)
 
         # serialize weights to HDF5
-        self.model.save(f"{name}test_with_matt.h5") ## PUT IN MODEL NAME + '.h5' HERE
-        storage_upload(f'{name}.json')
-        storage_upload(f"{name}.h5")
+        self.model.save(f"{name}.h5") ## PUT IN MODEL NAME + '.h5' HERE
+        # storage_upload(f'{name}.json')
+        # storage_upload(f"{name}.h5")
 
         print("-------------------MODEL SAVED----------------")
 
 
     def save_pipeline(self):
-        joblib.dump(self.pipeline, 'pipeline_1.joblib')
+        joblib.dump(self.fitted_pipeline, 'pipeline.joblib')
         print("-------------------PIPELINE SAVED----------------")
 
 
@@ -271,19 +267,19 @@ class Trainer(object):
 
 
 if __name__ == "__main__":
-    warnings.simplefilter(action='ignore', category=FutureWarning)
 
+    warnings.simplefilter(action='ignore', category=FutureWarning)
     print("-----------LOADING DATASET-----------")
+
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
     df = get_data(nrows=100)
     print(df)
     print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
-
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    #df = balance_nv(df, 1000)
-    #df = data_augmentation(df, image_size=image_size)
+    # df = balance_nv(df, 1000)
+    # df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
@@ -297,8 +293,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-
-    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet', 'tlvgg16_awesome'
+    t.train(estimator='baseline_model') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet', 'tlvgg16_awesome'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
@@ -310,5 +305,5 @@ if __name__ == "__main__":
 
     print("############  Saving pipeline  ############")
     t.save_pipeline()
-    app_model = joblib.load("pipeline.joblib")
+
 
