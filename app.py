@@ -7,6 +7,8 @@ from scipy.misc import imread
 import joblib
 from skin_lesion_detection.predict import Preprocessor
 
+# disable warning
+st.set_option('deprecation.showfileUploaderEncoding', False)
 
 st.markdown("""# Skin Lesion Detection Engine""")
 
@@ -95,10 +97,22 @@ resized_image = np.resize(image, (75, 100, 3))
 X_met_test = df.astype('float64')
 X_im_test = resized_image # toggle between image and resized_image
 
+# st.write(X_met_test)
+# st.write(X_im_test)
 
 
-st.write(X_met_test)
-st.write(X_im_test)
+# import model and make prediction
+st.markdown("""## Step 3: Get prediction""")
+prediction = st.button("Predict")
+
+if prediction:
+  path_model = "tl_vgg_awesome.joblib"
+  # apply model here eg model.predict(x=[X_met_test, X_im_test] etc...)
+  st.markdown("""### Top 3 most likely diagnoses:
+  #### 1) {}
+  #### 2) {}
+  #### 3) {}""")
+
+# diplay top 3 most likely predictions with accuracy
 
 
-# predict on gcp saved model (or local saved model)
