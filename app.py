@@ -7,11 +7,6 @@ from scipy.misc import imread
 import joblib
 from skin_lesion_detection.predict import Preprocessor
 
-from skin_lesion_detection import encoders as encoders
-from skin_lesion_detection import trainer
-
-
-#
 
 st.markdown("""# Skin Lesion Detection Engine""")
 
@@ -42,48 +37,68 @@ if str(les_loc).lower() == "other/na":
 if str(tech_val_field).lower() == "histopathology":
     tech_val_field = "histo"
 
-# create df that mimics trainer dataframe
+# create df that mimics trainer dataframe wtih transformations
 df = pd.DataFrame({
-          'sex': str(sex).lower(),
-          'age': float(age),
-          'localization': str(les_loc).lower(),
-          'dx_type': str(tech_val_field).lower(),
+          'acral': float(0),
+          'abdomen' : float(0),
+          'back' : float(0),
+          'chest' : float(0),
+          'ear' : float(0),
+          'face' : float(0),
+          'foot' : float(0),
+          'genital' : float(0),
+          'hand' : float(0),
+          'lower extremity': float(0),
+          'neck' : float(0),
+          'scalp' : float(0),
+          'trunk' : float(0),
+          'upper extremity' : float(0),
+          'unknown' : float(0),
+          'confocal': float(0),
+          'consensus': float(0),
+          'follow_up': float(0),
+          'histo': float(0),
+          'female': float(0),
+          'male': float(0),
+          'unknown': float(0),
+          'age_scaled': (float(age)-60)/25
           }, index=[0])
 
-reshaped = image.reshape(810000)
-resized_reshaped = np.resize(image, (75, 100, 3)).reshape(22500)
 
-image_list = [i for i in reshaped]
-image_resized_list = [i for i in resized_reshaped]
+# enter localization info value into dataframe
+loc_list = ['abdomen', 'acral', 'back', 'chest', 'ear', 'face', 'foot',
+       'genital', 'hand', 'lower extremity', 'neck', 'scalp', 'trunk',
+       'unknown', 'upper extremity']
+for i in loc_list:
+    if str(les_loc).lower() == i:
+        df.set_value(0, i, float(1))
 
-df['images'] = [image_list]
-df['images_resized'] = [image_resized_list]
+# enter dx_type info value into dataframe
+dx_list = ['histo', 'confocal', 'consensus', 'follow_up']
+for i in dx_list:
+    if str(tech_val_field).lower() == i:
+        df.set_value(0, i, float(1))
 
+# enter sex info value into dataframe
+sex_list = ['male', 'female']
+for i in sex_list:
+    if str(sex).lower() == i:
+        df.set_value(0, i, float(1))
 
+# st.dataframe(df) to see df
 
-st.dataframe(df)
-
-# apply pipeline transformations to df
-
-
-# preprocessor = Preprocessor().predict(df)
-model = joblib.load(open("skin_lesion_detection/pipeline_1.joblib", 'rb'))
-
-# preproc = Preprocessor.from_path()
-# df_preproc = preproc.transform(df)
-
-# st.write(df_preproc)
-name = 'vgg_test'
-json_file = open(f'{name}', 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-loaded_model = model_from_json(loaded_model_json)
-model = loaded_model.load_weights(f'{name}.h5')
-
-model.predict(df)
-
-
+# resize image and scale using ImageScaler
+image = image
+resized_image = np.resize(image, (75, 100, 3))
 
 # split into X_met and X_im
+X_met_test = df.astype('float64')
+X_im_test = resized_image # toggle between image and resized_image
+
+
+
+st.write(X_met_test)
+st.write(X_im_test)
+
 
 # predict on gcp saved model (or local saved model)
