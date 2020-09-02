@@ -4,6 +4,7 @@ from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, RobustScaler
+from scipy import sparse
 
 import pickle
 import tensorflow.keras
@@ -34,7 +35,7 @@ class Trainer(object):
         self.y = y
         self.split = self.kwargs.get("split", True)
         # Image dimension attributes
-        self.scaler = self.kwargs.get('scaler', 'normalization')
+        self.scaler = self.kwargs.get('scaler', 'standardization')
         self.image_size = self.kwargs.get('image_size', 'full_size')
         if self.image_size == 'full_size':
           self.target_images = 'images'
@@ -61,48 +62,37 @@ class Trainer(object):
         self.ohe = OneHotEncoder(handle_unknown='ignore')
         self.rs = RobustScaler()
         self.imsc = ImageScaler(scaler=self.scaler, image_size=self.image_size)
-        pipe_cat_feats = make_pipeline(self.ohe)
-        pipe_cont_feats = make_pipeline(self.rs)
-        pipe_photo_feats = make_pipeline(self.imsc)
+        self.pipe_cat_feats = make_pipeline(self.ohe)
+        self.pipe_cont_feats = make_pipeline(self.rs)
+        self.pipe_photo_feats = make_pipeline(self.imsc)
         # Define default feature engineering blocs
         feateng_blocks = [
-            ('cat_feats', pipe_cat_feats, ['localization', 'dx_type', 'sex']),
-            ('cont_features', pipe_cont_feats, ['age']),
-            ('photo_feats', pipe_photo_feats, [self.target_images]),
+            ('cat_feats', self.pipe_cat_feats, ['localization', 'dx_type', 'sex']),
+            ('cont_features', self.pipe_cont_feats, ['age']),
+            ('photo_feats', self.pipe_photo_feats, ['images_resized']),
         ]
         self.features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")
         self.pipeline = Pipeline(steps=[
-            ('features', self.features_encoder)
-            ])
-
+            ('features', self.features_encoder)])
 
     #@simple_time_tracker
     def preprocess(self, gridsearch=False, image_type="full_size"):
         """
         Add time tracker - if we want?
         """
-        # categorise y
+        # categorise y and make images column
         ohe = OneHotEncoder(handle_unknown='ignore')
         self.num_labels = len(np.unique(self.y.values))
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
+        print(self.X)
+        # self.imcols = self.X.copy()[['images', 'images_resized']]
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
+        # set pipeline
+        self.set_pipeline()
+        print(X.columns)
+        self.pipeline.fit(self.X)
+        self.X = self.pipeline.transform(self.X)
 
-        # self.X['age'] = self.X['age'].astype('float64')
-        # scale/encode X features (metadata + pixel data) via pipeline
-        self.rs = RobustScaler()
-        self.imsc = ImageScaler(scaler=self.scaler, image_size=self.image_size)
-
-        import ipdb; ipdb.set_trace()
-        self.X.localization = ohe.fit_transform(self.X.localization.values).toarray()
-        self.X.sex = ohe.fit_transform(self.X.sex).toarray()
-        self.X.dx_type = ohe.fit_transform(self.X.dx_type).toarray()
-        self.X.age = rs.fit_transform(self.X.age).toarray()
-        X[self.target_images] = imsc.fit_transform(X[self.target_images]).toarray()
-
-        # self.set_pipeline()
-        # self.pipeline.fit(self.X)
-        # self.X = self.pipeline.transform(self.X)
-        # self.fitted_pipeline = self.pipeline
         # convert self.X to pd.df
         self.col_list = []
         list_arrays = self.features_encoder.transformers_[0][1].named_steps['onehotencoder'].categories_
@@ -111,17 +101,16 @@ class Trainer(object):
                 self.col_list.append(col_name)
         self.col_list.append('age_scaled')
         self.col_list.append('pixels_scaled')
-        self.X = pd.DataFrame(self.X, columns=self.col_list)
+        self.X = pd.DataFrame(self.X.todense(), columns=self.col_list)
         print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
-
+        # add images
+        #self.X['pixels_scaled'] = self.imcols.images_resized.apply(lambda x: x/255)
 
         # create train vs test dataframes
         if self.split:
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, random_state=1, test_size=0.3)
-
         self.pixels_to_array()
         self.input_dim = self.X_met_train.shape[1]
-        print(list_arrays)
         print("-----------STATUS UPDATE: DATA SPLIT INTO X/Y TEST/TRAIN MET/IM'-----------")
 
 
@@ -209,7 +198,7 @@ class Trainer(object):
 
 
     def save_pipeline(self):
-        joblib.dump(self.fitted_pipeline, 'pipeline.joblib')
+        joblib.dump(self.pipeline, 'pipeline.joblib')
         print("-------------------PIPELINE SAVED----------------")
 
 
@@ -273,17 +262,19 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=100)
-    print(df)
+    df = get_data(nrows=200)
+
     print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
+    # print(df)
+
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
     # df = balance_nv(df, 1000)
-    # df = data_augmentation(df, image_size=image_size)
+    df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 
     # Assign X and y and instanciate Trainer Class
-    X = df.drop(columns=['dx', 'lesion_id', 'image_id', 'cell_type', 'cell_type_idx'])
+    X = df.drop(columns=['dx', 'path', 'lesion_id', 'image_id', 'cell_type', 'cell_type_idx'])
     y = df['dx']
     t = Trainer(X, y, image_size=image_size)
 

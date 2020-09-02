@@ -3,7 +3,8 @@ from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Dense, Input, Flatten, concatenate, Dropout, Activation, MaxPooling2D, Conv2D, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-
+from tensorflow.keras.metrics import categorical_accuracy, top_k_categorical_accuracy
+import functools
 import numpy as np
 import os
 

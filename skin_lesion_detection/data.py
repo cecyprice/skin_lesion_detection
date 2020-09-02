@@ -84,6 +84,7 @@ def clean_df(df):
 
   df['age'].fillna((df['age'].mean()), inplace = True)
   ## drop duplicates
+  df = df.dropna()
   df = df.drop_duplicates(subset=['lesion_id'], keep = 'first')
 
   # convert categorical columns to numeric values
@@ -133,12 +134,6 @@ def balance_nv(df, under_sample_size):
 
   return df
 
-
-def optimise_df(df, verbose=True, **kwargs):
-  '''
-  Reduce size of dataframe by downcasting numerical columns
-  '''
-  pass
 
 
 def data_augmentation(df, image_size = 'resized'):

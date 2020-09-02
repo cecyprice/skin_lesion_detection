@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
+from scipy import sparse
 
 
 class ImageScaler(BaseEstimator, TransformerMixin):
@@ -31,7 +32,9 @@ class ImageScaler(BaseEstimator, TransformerMixin):
       if self.scaler=='centering':
         X['pixels_scaled'] = X.images_resized.apply(lambda x: ((x - x.mean(axis=0))-(x - x.mean(axis=0)).min())/((x - x.mean(axis=0)).max()-(x - x.mean(axis=0)).min()))
 
-    return X['pixels_scaled'].values.reshape(X['pixels_scaled'].shape[0], 1)
+    rows = X.pixels_scaled.values.shape[0]
+    return X.pixels_scaled.values.reshape(rows, 1)
+    #X['pixels_scaled'].values.reshape(X['pixels_scaled'].shape[0], 1)
 
 
   def fit(self, X, y=None):
