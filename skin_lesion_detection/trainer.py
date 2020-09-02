@@ -294,6 +294,7 @@ if __name__ == "__main__":
     print("############  Saving pipeline  ############")
     t.save_pipeline()
     # app_model = joblib.load("pipeline.joblib")
+    # test trace
 
 
 
