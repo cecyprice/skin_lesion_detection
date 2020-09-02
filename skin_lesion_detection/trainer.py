@@ -205,7 +205,7 @@ class Trainer(object):
             json_file.write(model_json)
 
         # serialize weights to HDF5
-        self.model.save_weights(f"{name}.h5") ## PUT IN MODEL NAME + '.h5' HERE
+        self.model.save(f"{name}test_with_matt.h5") ## PUT IN MODEL NAME + '.h5' HERE
         storage_upload(f'{name}.json')
         storage_upload(f"{name}.h5")
 

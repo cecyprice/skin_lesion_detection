@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 from scipy.misc import imread
+from keras.models import load_model
 # from skin_lesion_detection.encoders import ImageScaler
 import joblib
 from skin_lesion_detection.predict import Preprocessor
@@ -87,7 +88,7 @@ for i in sex_list:
     if str(sex).lower() == i:
         df.set_value(0, i, float(1))
 
-# st.dataframe(df) to see df
+st.dataframe(df)
 
 # resize image and scale using ImageScaler
 image = image
@@ -106,13 +107,11 @@ st.markdown("""## Step 3: Get prediction""")
 prediction = st.button("Predict")
 
 if prediction:
-  path_model = "tl_vgg_awesome.joblib"
-  # apply model here eg model.predict(x=[X_met_test, X_im_test] etc...)
-  st.markdown("""### Top 3 most likely diagnoses:
-  #### 1) {}
+  model = load_model('skin_lesion_detection/tl_densenet_test.h5')
+  results = model.predict(x=[X_met_test, X_im_test])
+  st.markdown(f"""### Top 3 most likely diagnoses:
+  #### 1) {results}""")
   #### 2) {}
   #### 3) {}""")
 
 # diplay top 3 most likely predictions with accuracy
-
-
