@@ -187,7 +187,7 @@ class Trainer(object):
     #     print("-------------------HISTORY SAVED----------------")
 
     def save_model(self):
-        name = "baseline_model_test" ### NAME YOUR TEST RUN!!!
+        name = "tl_densenet_test" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
@@ -281,7 +281,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='baseline_model') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
+    t.train(estimator='tl_densenet') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")
