@@ -91,7 +91,7 @@ class TLModels():
         opt = Adam(lr=1e-4, decay=1e-3 / 200)
         model.compile(loss="categorical_crossentropy",
             optimizer=opt,
-            metrics=[categorical_accuracy, top3_acc])
+            metrics=[categorical_accuracy, top3_accuracy])
 
         #NB have removed  'precision', 'f1'
         return model
