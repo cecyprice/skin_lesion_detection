@@ -94,7 +94,6 @@ for i in sex_list:
     if str(sex).lower() == i:
         df.set_value(0, i, float(1))
 
-st.dataframe(df)
 
 # resize image and scale using ImageScaler
 image = image
@@ -157,7 +156,7 @@ if prediction:
     dict_nums[i] = translate_dict[val]
 
 
-  st.markdown(f"""### Top 3 most likely diagnoses:)
+  st.markdown(f"""### Top 3 most likely diagnoses:
   #### 1) {dict_nums[6]}
   #### 2) {dict_nums[5]}
   #### 3) {dict_nums[4]}""")
