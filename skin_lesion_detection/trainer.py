@@ -89,7 +89,6 @@ class Trainer(object):
         # set pipeline
         self.set_pipeline()
         self.X = self.pipeline.fit_transform(self.X)
-        # import ipdb; ipdb.set_trace()
 
         # convert self.X to pd.df
         self.col_list = []
@@ -182,7 +181,7 @@ class Trainer(object):
 
     def save_model(self):
 
-        name = "baseline_model" ### NAME YOUR TEST RUN!!!
+        name = "tl_vgg_1" ### NAME YOUR TEST RUN!!!
         ## serialize model to json
         model_json = self.model.to_json()
         with open(f"{name}", "w") as json_file: ## PUT IN MODEL NAME + '.json' HERE
@@ -265,7 +264,6 @@ if __name__ == "__main__":
 
     print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
-    # print(df)
 
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
     df = balance_nv(df, 1000)
@@ -293,7 +291,7 @@ if __name__ == "__main__":
     print("############  Saving model  ############")
     t.save_model()
 
-    print("############  Saving pipeline  ############")
-    t.save_pipeline()
+    # print("############  Saving pipeline  ############")
+    # t.save_pipeline()
 
 
