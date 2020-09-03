@@ -281,7 +281,7 @@ if __name__ == "__main__":
 
     # Train model
     print("############  Training model   ############")
-    t.train(estimator='baseline_model') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet', 'tlvgg16_awesome'
+    t.train(estimator='tl_vgg') # toggle between 'baseline_model', 'tl_vgg', 'tl_resnet' and 'tl_densenet', 'tlvgg16_awesome'
 
     # Evaluate model on X_test/y_preds vs y_test
     print("############  Evaluating model   ############")

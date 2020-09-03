@@ -6,6 +6,13 @@ from scipy.misc import imread
 from keras.models import load_model
 import joblib
 
+import tensorflow.keras
+from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.layers import Dense, Input, Flatten, concatenate, Dropout, Activation, MaxPooling2D, Conv2D, BatchNormalization
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.applications.vgg16 import VGG16
+
 
 # disable warning
 st.set_option('deprecation.showfileUploaderEncoding', False)
@@ -62,7 +69,7 @@ df = pd.DataFrame({
           'histo': float(0),
           'female': float(0),
           'male': float(0),
-          'unknown': float(0),
+          'NA': float(0),
           'age_scaled': (float(age)-60)/25
           }, index=[0])
 
@@ -87,7 +94,7 @@ for i in sex_list:
     if str(sex).lower() == i:
         df.set_value(0, i, float(1))
 
-# st.dataframe(df) to see df
+st.dataframe(df)
 
 # resize image and scale using ImageScaler
 image = image
@@ -97,24 +104,65 @@ resized_image = np.resize(image, (75, 100, 3))
 X_met_test = df.astype('float64')
 X_im_test = resized_image # toggle between image and resized_image
 
-# st.write(X_met_test)
-# st.write(X_im_test)
-
 
 # import model and make prediction
 st.markdown("""## Step 3: Get prediction""")
 prediction = st.button("Predict")
 
+
+# build model
+mlf_fork = Sequential()
+mlf_fork.add(Dense(16, input_dim=23, activation="relu"))
+mlf_fork.add(Dense(8, activation="relu"))
+mlf_fork.add(Dense(4, activation="relu"))
+
+cnn_fork = VGG16(weights='imagenet', input_shape=(75, 100, 3), include_top=False)
+for layer in cnn_fork.layers:
+  layer.trainable = False
+inp = Input(shape=(75, 100, 3))
+base_output = cnn_fork(inp)
+x = Flatten()(base_output)
+x = Dense(126, activation='relu')(x)
+x = Dense(32, activation='relu')(x)
+x = Dense(4, activation='relu')(x)
+cnn_fork = Model(inp, x)
+
+combinedInput = concatenate([mlf_fork.output, cnn_fork.output])
+x = Dense(4, activation="relu")(combinedInput)
+x = Dense(7, activation="softmax")(x)
+model = Model(inputs=[mlf_fork.input, cnn_fork.input], outputs=x)
+
+# load weights and make prediction
+X_im_test = X_im_test.reshape(1, 75, 100, 3)
+
+
+translate_dict = {
+    0: 'Melanocytic nevi',
+    1: 'Melanoma',
+    2: 'Benign keratosis-like lesions ',
+    3: 'Basal cell carcinoma',
+    4: 'Actinic keratoses',
+    5: 'Vascular lesions',
+    6: 'Dermatofibroma'}
+
 if prediction:
-  model = load_model('skin_lesion_detection/test_with_matt.h5')
-  val_loss, val_cat_acc, val_top_3_acc = model.predict(x=[X_met_test, X_im_test])
+  # model = load_model('skin_lesion_detection/tl_vgg_1.h5')
+  model.load_weights('skin_lesion_detection/tl_vgg_1.h5')
+  results = model.predict(x=[X_met_test, X_im_test])
 
-  st.markdown(f"""### Top 3 most likely diagnoses:""")
-  #### 1) {}
-  #### 2) {}
-  #### 3) {}
-  ##### accuracy = {val_top_3_acc}""")
+  indices = np.argsort(results).tolist()[0]
 
-# diplay top 3 most likely predictions with accuracy
+  dict_nums = {}
+  for i, val in enumerate(indices):
+    dict_nums[i] = translate_dict[val]
+
+
+  st.markdown(f"""### Top 3 most likely diagnoses:)
+  #### 1) {dict_nums[6]}
+  #### 2) {dict_nums[5]}
+  #### 3) {dict_nums[4]}""")
+  ##### accuracy = {}""")
+
+  # diplay top 3 most likely predictions with accuracy
 
 
