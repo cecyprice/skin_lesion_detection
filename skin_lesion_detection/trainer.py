@@ -64,12 +64,12 @@ class Trainer(object):
         self.imsc = ImageScaler(scaler=self.scaler, image_size=self.image_size)
         self.pipe_cat_feats = make_pipeline(self.ohe)
         self.pipe_cont_feats = make_pipeline(self.rs)
-        self.pipe_photo_feats = make_pipeline(self.imsc)
+        # self.pipe_photo_feats = make_pipeline(self.imsc)
         # Define default feature engineering blocs
         feateng_blocks = [
             ('cat_feats', self.pipe_cat_feats, ['localization', 'dx_type', 'sex']),
-            ('cont_features', self.pipe_cont_feats, ['age']),
-            ('photo_feats', self.pipe_photo_feats, ['images_resized']),
+            ('cont_features', self.pipe_cont_feats, ['age'])
+            #('photo_feats', self.pipe_photo_feats, [self.target_images]),
         ]
         self.features_encoder = ColumnTransformer(feateng_blocks, n_jobs=None, remainder="drop")
         self.pipeline = Pipeline(steps=[
@@ -84,14 +84,12 @@ class Trainer(object):
         ohe = OneHotEncoder(handle_unknown='ignore')
         self.num_labels = len(np.unique(self.y.values))
         self.y = ohe.fit_transform(self.y.values.reshape(-1, 1)).toarray()
-        print(self.X)
-        # self.imcols = self.X.copy()[['images', 'images_resized']]
+        self.imcol = self.X[self.target_images].reset_index().drop(columns=['index'])
         print("-----------STATUS UPDATE: Y CATEGORISED'-----------")
         # set pipeline
         self.set_pipeline()
-        print(X.columns)
-        self.pipeline.fit(self.X)
-        self.X = self.pipeline.transform(self.X)
+        self.X = self.pipeline.fit_transform(self.X)
+        # import ipdb; ipdb.set_trace()
 
         # convert self.X to pd.df
         self.col_list = []
@@ -100,11 +98,13 @@ class Trainer(object):
             for col_name in i:
                 self.col_list.append(col_name)
         self.col_list.append('age_scaled')
-        self.col_list.append('pixels_scaled')
+        # self.col_list.append('pixels_scaled')
         self.X = pd.DataFrame(self.X.todense(), columns=self.col_list)
+        self.imcol = pd.DataFrame(self.imcol)
+        self.X = pd.concat([self.X, self.imcol], axis=1, ignore_index=True)
+        self.col_list.append('pixels_scaled')
+        self.X.columns = self.col_list
         print("-----------STATUS UPDATE: PIPELINE FITTED'-----------")
-        # add images
-        #self.X['pixels_scaled'] = self.imcols.images_resized.apply(lambda x: x/255)
 
         # create train vs test dataframes
         if self.split:
@@ -127,7 +127,6 @@ class Trainer(object):
         elif self.image_size == "resized":
             self.X_im_train = np.array([i.reshape(75, 100, 3) for i in self.X_train['pixels_scaled'].values])
             self.X_im_test = np.array([i.reshape(75, 100, 3) for i in self.X_test['pixels_scaled'].values])
-
         print("-----------STATUS UPDATE: PIXEL ARRAGYS EXTRACTED'-----------")
 
 
@@ -262,14 +261,14 @@ if __name__ == "__main__":
 
     # Get and clean data
     image_size = 'resized' # toggle between 'resized' and 'full_size'
-    df = get_data(nrows=200)
+    df = get_data(nrows=None)
 
     print("-----------STATUS UPDATE: DATA IMPORTED-----------")
     df = clean_df(df)
     # print(df)
 
     print("-----------STATUS UPDATE: DATA CLEANED'-----------")
-    # df = balance_nv(df, 1000)
+    df = balance_nv(df, 1000)
     df = data_augmentation(df, image_size=image_size)
     print("-----------STATUS UPDATE: DATA BALANCED + AUGMENTED'-----------")
 

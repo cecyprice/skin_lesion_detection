@@ -42,10 +42,11 @@ def get_data(random_state=1, local=True, nrows=None):
     df['age'].fillna((df['age'].mean()), inplace = True)
     df = df.dropna()
 
-    df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000))
-    df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((75,100)))).apply(lambda x : x.reshape(22500))
+    df['images'] = df['path'].map(lambda x: np.asarray(Image.open(x))).apply(lambda x : x.reshape(810000)).apply(lambda x : x/255)
+    df['images_resized'] = df['path'].map(lambda x: np.asarray(Image.open(x).resize((75,100)))).apply(lambda x : x.reshape(22500)).apply(lambda x : x/255)
 
     return df
+
 
   else:
 
